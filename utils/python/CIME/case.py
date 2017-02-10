@@ -831,7 +831,9 @@ class Case(object):
 
     def _create_caseroot_tools(self):
         machines_dir = os.path.abspath(self.get_value("MACHDIR"))
+        machine = self.get_value("MACH")
         toolsdir = os.path.join(self.get_value("CIMEROOT"),"scripts","Tools")
+        casetools = os.path.join(self._caseroot, "Tools")
         # setup executable files in caseroot/
         exefiles = (os.path.join(toolsdir, "case.setup"),
                     os.path.join(toolsdir, "case.build"),
@@ -852,21 +854,32 @@ class Case(object):
             logger.warning("FAILED to set up exefiles: %s" % str(e))
 
         # set up utility files in caseroot/Tools/
-        toolfiles = (os.path.join(toolsdir, "check_lockedfiles"),
+        toolfiles = [os.path.join(toolsdir, "check_lockedfiles"),
                      os.path.join(toolsdir, "lt_archive.sh"),
                      os.path.join(toolsdir, "getTiming"),
                      os.path.join(toolsdir, "save_provenance"),
                      os.path.join(machines_dir,"Makefile"),
                      os.path.join(machines_dir,"mkSrcfiles"),
-                     os.path.join(machines_dir,"mkDepends"))
+                     os.path.join(machines_dir,"mkDepends")]
+
+        # used on Titan
+        if os.path.isfile( os.path.join(toolsdir,"mdiag_reduce.csh") ):
+            toolfiles.append( os.path.join(toolsdir,"mdiag_reduce.csh") )
+            toolfiles.append( os.path.join(toolsdir,"mdiag_reduce.pl") )
 
         for toolfile in toolfiles:
-            destfile = os.path.join(self._caseroot,"Tools",os.path.basename(toolfile))
+            destfile = os.path.join(casetools, os.path.basename(toolfile))
             expect(os.path.isfile(toolfile)," File %s does not exist"%toolfile)
             try:
                 os.symlink(toolfile, destfile)
             except Exception as e:
                 logger.warning("FAILED to set up toolfiles: %s %s %s" % (str(e), toolfile, destfile))
+
+        if get_model() == "acme":
+            if os.path.exists(os.path.join(machines_dir, "syslog.%s" % machine)):
+                shutil.copy(os.path.join(machines_dir, "syslog.%s" % machine), os.path.join(casetools, "mach_syslog"))
+            else:
+                shutil.copy(os.path.join(machines_dir, "syslog.noop"), os.path.join(casetools, "mach_syslog"))
 
     def _create_caseroot_sourcemods(self):
         components = self.get_compset_components()
@@ -1113,8 +1126,13 @@ class Case(object):
 
         tests = Testlist(tests_spec_file, files)
         testlist = tests.get_tests(compset=compset_alias, grid=grid_name)
-        if len(testlist) > 0:
-            logger.info("\nThis compset and grid combination is not scientifically supported, however it is used in %d tests.\n"%(len(testlist)))
+        testcnt = 0
+        for test in testlist:
+            if test["category"] == "prealpha" or test["category"] == "prebeta" or "aux_" in test["category"]:
+                testcnt += 1
+        if testcnt > 0:
+            logger.info("\nThis compset and grid combination is not scientifically supported, however it is used in %d tests.\n"%(testcnt))
         else:
-            expect(False, "\nThis compset and grid combination is unsupported in CESM.  "
-                   "If you wish to use it anyway you must supply the --run-unsupported option to create_newcase.")
+            expect(False, "\nThis compset and grid combination is untested in CESM.  "
+                   "Override this warning with the --run-unsupported option to create_newcase.",
+                   error_prefix="STOP: ")
