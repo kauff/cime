@@ -13,7 +13,7 @@ from CIME.XML.standard_module_setup import *
 import CIME.compare_namelists
 import CIME.utils
 from update_acme_tests import get_recommended_test_time
-from CIME.utils import append_status, TESTS_FAILED_ERR_CODE, parse_test_name, get_full_test_name
+from CIME.utils import append_status, append_testlog, TESTS_FAILED_ERR_CODE, parse_test_name, get_full_test_name
 from CIME.test_status import *
 from CIME.XML.machines import Machines
 from CIME.XML.env_test import EnvTest
@@ -96,6 +96,7 @@ class TestScheduler(object):
         self._test_data     = {} if test_data is None else test_data # Format:  {test_name -> {data_name -> data}}
         self._mpilib = mpilib  # allow override of default mpilib
         self._allow_baseline_overwrite  = allow_baseline_overwrite
+        self._completed_tests = 0
 
         self._machobj = Machines(machine=machine_name)
 
@@ -175,8 +176,8 @@ class TestScheduler(object):
                     if os.path.isdir(test_baseline):
                         existing_baselines.append(test_baseline)
                 expect(allow_baseline_overwrite or len(existing_baselines) == 0,
-                           "Baseline directories already exists %s\n"\
-                           "Use --allow_baseline_overwrite to avoid this error"%existing_baselines)
+                       "Baseline directories already exists %s\n" \
+                       "Use -o to avoid this error" % existing_baselines)
         else:
             self._baseline_root = None
 
@@ -218,13 +219,15 @@ class TestScheduler(object):
                         else:
                             self._update_test_status(test, phase, TEST_PEND_STATUS)
                             self._update_test_status(test, phase, status)
+                logger.info("Using existing test directory %s"%(self._get_test_dir(test)))
         else:
             # None of the test directories should already exist.
             for test in self._tests:
                 expect(not os.path.exists(self._get_test_dir(test)),
                        "Cannot create new case in directory '%s', it already exists."
                        " Pick a different test-id" % self._get_test_dir(test))
-        logger.info("Created test in directory %s"%self._get_test_dir(test))
+                logger.info("Creating test directory %s"%(self._get_test_dir(test)))
+
         # By the end of this constructor, this program should never hard abort,
         # instead, errors will be placed in the TestStatus files for the various
         # tests cases
@@ -237,7 +240,7 @@ class TestScheduler(object):
             # Note: making this directory could cause create_newcase to fail
             # if this is run before.
             os.makedirs(test_dir)
-        append_status(output,caseroot=test_dir,sfile="TestStatus.log")
+        append_testlog(output, caseroot=test_dir)
 
     ###########################################################################
     def _get_case_id(self, test):
@@ -536,12 +539,9 @@ class TestScheduler(object):
         test_dir  = self._get_test_dir(test)
         rv = self._shell_cmd_for_phase(test, "./case.setup", SETUP_PHASE, from_dir=test_dir)
 
-        # A little subtle. If namelists_only, the RUN phase, when the namelists would normally
-        # be handled, is not going to happen, so we have to do it here.
-        if self._namelists_only:
-            # It's OK for this command to fail with baseline diffs but not catastrophically
-            cmdstat, output, errput = run_cmd("./case.cmpgen_namelists", from_dir=test_dir)
-            expect(cmdstat in [0, TESTS_FAILED_ERR_CODE], "Fatal error in case.cmpgen_namelists: %s" % (output + "\n" + errput))
+        # It's OK for this command to fail with baseline diffs but not catastrophically
+        cmdstat, output, errput = run_cmd("./case.cmpgen_namelists", from_dir=test_dir)
+        expect(cmdstat in [0, TESTS_FAILED_ERR_CODE], "Fatal error in case.cmpgen_namelists: %s" % (output + "\n" + errput))
 
         return rv
 
@@ -643,8 +643,15 @@ class TestScheduler(object):
         if status != TEST_PEND_STATUS:
             self._update_test_status(test, test_phase, status)
 
-        status_str = "Finished %s for test %s in %f seconds (%s)" %\
-                     (test_phase, test, elapsed_time, status)
+        if not self._work_remains(test):
+            self._completed_tests += 1
+            total = len(self._tests)
+            status_str = "Finished %s for test %s in %f seconds (%s). [COMPLETED %d of %d]" % \
+                (test_phase, test, elapsed_time, status, self._completed_tests, total)
+        else:
+            status_str = "Finished %s for test %s in %f seconds (%s)" % \
+                (test_phase, test, elapsed_time, status)
+
         if not success:
             status_str += "    Case dir: %s" % self._get_test_dir(test)
         logger.info(status_str)
@@ -655,7 +662,7 @@ class TestScheduler(object):
             self._update_test_status_file(test, test_phase, status)
 
         if test_phase == XML_PHASE:
-            append_status("Case Created using: "+" ".join(sys.argv), caseroot=self._get_test_dir(test), sfile="README.case")
+            append_status("Case Created using: "+" ".join(sys.argv), "README.case", caseroot=self._get_test_dir(test))
 
         # On batch systems, we want to immediately submit to the queue, because
         # it's very cheap to submit and will get us a better spot in line
@@ -730,6 +737,8 @@ class TestScheduler(object):
             template = template.replace("<PATH>",
                                         os.path.join(self._cime_root,"scripts","Tools")).replace\
                                         ("<TESTID>", self._test_id)
+            if not os.path.exists(self._test_root):
+                os.makedirs(self._test_root)
             cs_status_file = os.path.join(self._test_root, "cs.status.%s" % self._test_id)
             with open(cs_status_file, "w") as fd:
                 fd.write(template)
@@ -776,12 +785,12 @@ class TestScheduler(object):
         for test in self._tests:
             logger.info( "  %s"% test)
 
+        # Setup cs files
+        self._setup_cs_files()
+
         self._producer()
 
         expect(threading.active_count() == 1, "Leftover threads?")
-
-        # Setup cs files
-        self._setup_cs_files()
 
         wait_handles_report = False
         if not self._no_run and not self._no_batch:
