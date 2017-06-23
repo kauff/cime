@@ -189,7 +189,7 @@
     <!-- anvil is PBS -->
     <batch_system MACH="anvil" type="pbs" >
       <directives>
-        <directive>-A {{ PROJECT }}</directive>
+        <directive>-A {{ subproject }}</directive>
         <directive>-l nodes={{ num_nodes }}:ppn={{ tasks_per_node }}</directive>
       </directives>
       <queues>

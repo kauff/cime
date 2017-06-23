@@ -59,6 +59,10 @@ OR
     parser.add_argument("--project", "-project",
                         help="Specify a project id")
 
+    parser.add_argument("--subproject", "-subproject",
+                        help="Specify a subproject id when charging account "
+                        "is different from project id")
+
     parser.add_argument("--pecount", "-pecount",  default="M",
                         help="Specify a target size description for the number of cores"
                          "Allowed options are   ('S','M','L','X1','X2','[0-9]x[0-9]','[0-9]')")
@@ -160,7 +164,7 @@ OR
         args.input_dir = os.path.abspath(args.input_dir)
 
     return args.case, args.compset, args.res, args.machine, args.compiler,\
-        args.mpilib, args.project, args.pecount, \
+        args.mpilib, args.project, args.subproject, args.pecount, \
         args.user_mods_dir, args.user_compset, args.pesfile, \
         args.user_grid, args.gridfile, args.srcroot, args.test, args.ninst, \
         args.walltime, args.queue, args.output_root, args.script_root, \
@@ -172,7 +176,7 @@ def _main_func(description):
     cimeroot  = os.path.abspath(CIME.utils.get_cime_root())
 
     casename, compset, grid, machine, compiler, \
-        mpilib, project, pecount,  \
+        mpilib, project, subproject, pecount,  \
         user_mods_dir, user_compset, pesfile, \
         user_grid, gridfile, srcroot, test, ninst, walltime, queue, \
         output_root, script_root, run_unsupported, \
@@ -200,6 +204,7 @@ def _main_func(description):
 
         # Configure the Case
         case.configure(compset, grid, machine_name=machine, project=project,
+                       subproject=subproject,
                        pecount=pecount, compiler=compiler, mpilib=mpilib,
                        user_compset=user_compset, pesfile=pesfile,
                        user_grid=user_grid, gridfile=gridfile, ninst=ninst, test=test,

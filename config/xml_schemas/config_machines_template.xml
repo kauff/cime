@@ -27,8 +27,16 @@
     <MPILIBS>mpt,openmpi,impi</MPILIBS>
 
     <!-- PROJECT: A project or account number used for batch jobs
+         This value is used for directory names. If different from
+         actual accounting project id, use SUBPROJECT below
 	 can be overridden in environment or $HOME/.cime/config -->
     <PROJECT>couldbethis</PROJECT>
+
+    <!-- SUBPROJECT: A project or account number used for batch jobs
+	 This is the actual project used for cost accounting set in
+         the batch script (ex. #PBS -A subproject)
+	 can be overridden in environment or $HOME/.cime/config -->
+    <SUBPROJECT>couldbethis_acme</SUBPROJECT>
 
     <!-- SAVE_TIMING_DIR: (Acme only) directory to write timing output to -->
     <SAVE_TIMING_DIR> </SAVE_TIMING_DIR>

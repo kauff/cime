@@ -616,6 +616,47 @@ def get_project(machobj=None):
     logger.info("No project info available")
     return None
 
+def get_subproject(machobj=None):
+    """
+    Hierarchy for choosing SUBPROJECT:
+    0. Command line flag to create_newcase or create_test
+    1. Environment variable SUBPROJECT
+    2. File $HOME/.cime/config       (this is new)
+    3. config_machines.xml (if machobj provided)
+    4. default to same value as PROJECT
+    """
+    subproject = os.environ.get("SUBPROJECT")
+    if (subproject is not None):
+        logger.info("Using subproject from env SUBPROJECT: " + subproject)
+        return subproject
+
+    cime_config = get_cime_config()
+    if (cime_config.has_option('main','SUBPROJECT')):
+        subproject = cime_config.get('main','SUBPROJECT')
+        if (subproject is not None):
+            logger.info("Using subproject from .cime/config: " + subproject)
+            return subproject
+
+    subprojectfile = os.path.abspath(os.path.join(os.path.expanduser("~"), ".cesm_proj"))
+    if (os.path.isfile(subprojectfile)):
+        with open(subprojectfile,'r') as myfile:
+            for line in myfile:
+                subproject = line.rstrip()
+                if not subproject.startswith("#"):
+                    break
+            logger.info("Using subproject from .cesm_proj: " + subproject)
+            cime_config.set('main','SUBPROJECT',subproject)
+            return subproject
+
+    if machobj is not None:
+        subproject = machobj.get_value("SUBPROJECT")
+        if subproject is not None:
+            logger.info("Using subproject from config_machines.xml: " + subproject)
+            return subproject
+    logger.info("No subproject info available, using value from PROJECT")
+    return get_project(machobj)
+
+
 def setup_standard_logging_options(parser):
     helpfile = "{}.log".format(sys.argv[0])
     helpfile = os.path.join(os.getcwd(),os.path.basename(helpfile))
