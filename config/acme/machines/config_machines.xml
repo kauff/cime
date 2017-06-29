@@ -974,7 +974,6 @@
 	 <PES_PER_NODE>36</PES_PER_NODE>
          <PROJECT_REQUIRED>FALSE</PROJECT_REQUIRED>
 	 <PROJECT>ACME</PROJECT>
-	 <SUBPROJECT>TESTACME</SUBPROJECT>
          <mpirun mpilib="openmpi">
            <executable>mpiexec</executable>
            <arguments>

@@ -316,7 +316,6 @@ class EnvBatch(EnvBase):
                         submitargs+=" {}{}".format(flag,str(rval).strip())
                     else:
                         submitargs+=" {} {}".format(flag,str(rval).strip())
-
         return submitargs
 
     def submit_jobs(self, case, no_batch=False, job=None, skip_pnl=False, batch_args=None, dry_run=False):
