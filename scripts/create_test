@@ -183,10 +183,10 @@ OR
                         "Used for accounting when on a batch system."
                         "The default is user-specified environment variable PROJECT")
 
-    parser.add_argument("--subproject",
-                        help="Specify a subproject id for the case (optional)."
+    parser.add_argument("--charge_account",
+                        help="Specify a charge_account id for the case (optional)."
                         "Used for accounting when on a batch system."
-                        "The default is user-specified environment variable SUBPROJECT")
+                        "The default is user-specified environment variable CHARGE_ACCOUNT")
 
     parser.add_argument("-t", "--test-id",
                         help="Specify an 'id' for the test. This is simply a"
@@ -360,13 +360,13 @@ OR
 
     return test_names, test_extra_data, args.compiler, mach_obj.get_machine_name(), args.no_run, args.no_build, args.no_setup, args.no_batch,\
         args.test_root, args.baseline_root, args.clean, baseline_cmp_name, baseline_gen_name, \
-        args.namelists_only, args.project, args.subproject, \
+        args.namelists_only, args.project, args.charge_account, \
         args.test_id, args.parallel_jobs, args.walltime, \
         args.single_submit, args.proc_pool, args.use_existing, args.save_timing, args.queue, \
         args.allow_baseline_overwrite, args.output_root, args.wait, args.force_procs, args.force_threads, args.mpilib, args.input_dir
 
 ###############################################################################
-def single_submit_impl(machine_name, test_id, proc_pool, project, subproject, args, job_cost_map, wall_time, test_root):
+def single_submit_impl(machine_name, test_id, proc_pool, project, charge_account, args, job_cost_map, wall_time, test_root):
 ###############################################################################
     mach = Machines(machine=machine_name)
     expect(mach.has_batch_system(), "Single submit does not make sense on non-batch machine '%s'" % mach.get_machine_name())
@@ -377,10 +377,10 @@ def single_submit_impl(machine_name, test_id, proc_pool, project, subproject, ar
         project = CIME.utils.get_project(mach)
         if project is None:
             project = mach.get_value("PROJECT")
-    if subproject is None:
-        subproject = CIME.utils.get_subproject(mach)
-        if subproject is None:
-            subproject = mach.get_value("SUBPROJECT")
+    if charge_account is None:
+        charge_account = CIME.utils.get_charge_account(mach)
+        if charge_account is None:
+            charge_account = mach.get_value("CHARGE_ACCOUNT")
 
     #
     # Compute arg list for second call to create_test
@@ -450,8 +450,8 @@ def single_submit_impl(machine_name, test_id, proc_pool, project, subproject, ar
     directives = directives.replace("{{ job_queue }}", queue)
     if project is not None:
         directives = directives.replace("{{ project }}", project)
-    if subproject is not None:
-        directives = directives.replace("{{ subproject }}", subproject)
+    if charge_account is not None:
+        directives = directives.replace("{{ charge_account }}", charge_account)
 
     expect("{{" not in directives, "Could not resolve all items in directives:\n%s" % directives)
 
@@ -473,7 +473,7 @@ def single_submit_impl(machine_name, test_id, proc_pool, project, subproject, ar
 ###############################################################################
 # pragma pylint: disable=protected-access
 def create_test(test_names, test_data, compiler, machine_name, no_run, no_build, no_setup, no_batch, test_root,
-                baseline_root, clean, baseline_cmp_name, baseline_gen_name, namelists_only, project, subproject, test_id, parallel_jobs,
+                baseline_root, clean, baseline_cmp_name, baseline_gen_name, namelists_only, project, charge_account, test_id, parallel_jobs,
                 walltime, single_submit, proc_pool, use_existing, save_timing, queue, allow_baseline_overwrite, output_root, wait,
                 force_procs, force_threads, mpilib, input_dir):
 ###############################################################################
@@ -512,7 +512,7 @@ def create_test(test_names, test_data, compiler, machine_name, no_run, no_build,
             proc_pool = 2 * largest_case
 
         # Create submit script
-        single_submit_impl(machine_name, test_id, proc_pool, project, subproject, sys.argv[1:], job_cost_map, walltime, test_root)
+        single_submit_impl(machine_name, test_id, proc_pool, project, charge_account, sys.argv[1:], job_cost_map, walltime, test_root)
 
     return 0 if success else CIME.utils.TESTS_FAILED_ERR_CODE
 
@@ -528,13 +528,13 @@ def _main_func(description):
 
     test_names, test_data, compiler, machine_name, no_run, no_build, no_setup, no_batch, \
     test_root, baseline_root, clean, baseline_cmp_name, baseline_gen_name, namelists_only, \
-    project, subproject, test_id, parallel_jobs, walltime, single_submit, proc_pool, use_existing, \
+    project, charge_account, test_id, parallel_jobs, walltime, single_submit, proc_pool, use_existing, \
     save_timing, queue, allow_baseline_overwrite, output_root, wait, force_procs, force_threads, mpilib, input_dir \
         = parse_command_line(sys.argv, description)
 
     sys.exit(create_test(test_names, test_data, compiler, machine_name, no_run, no_build, no_setup, no_batch, test_root,
                          baseline_root, clean, baseline_cmp_name, baseline_gen_name, namelists_only,
-                         project, subproject, test_id, parallel_jobs, walltime, single_submit, proc_pool, use_existing, save_timing,
+                         project, charge_account, test_id, parallel_jobs, walltime, single_submit, proc_pool, use_existing, save_timing,
                          queue, allow_baseline_overwrite, output_root, wait, force_procs, force_threads, mpilib, input_dir))
 
 ###############################################################################

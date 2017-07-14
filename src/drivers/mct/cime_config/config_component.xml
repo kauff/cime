@@ -2548,7 +2548,7 @@
    <desc>project for project-sensitive build and run paths, and job scripts</desc>
  </entry>
 
- <entry id="SUBPROJECT">
+ <entry id="CHARGE_ACCOUNT">
    <type>char</type>
    <default_value></default_value>
    <group>job_submission</group>

@@ -616,44 +616,44 @@ def get_project(machobj=None):
     logger.info("No project info available")
     return None
 
-def get_subproject(machobj=None):
+def get_charge_account(machobj=None):
     """
-    Hierarchy for choosing SUBPROJECT:
+    Hierarchy for choosing CHARGE_ACCOUNT:
     0. Command line flag to create_newcase or create_test
-    1. Environment variable SUBPROJECT
-    2. File $HOME/.cime/config       (this is new)
+    1. Environment variable CHARGE_ACCOUNT
+    2. File $HOME/.cime/config
     3. config_machines.xml (if machobj provided)
     4. default to same value as PROJECT
     """
-    subproject = os.environ.get("SUBPROJECT")
-    if (subproject is not None):
-        logger.info("Using subproject from env SUBPROJECT: " + subproject)
-        return subproject
+    charge_account = os.environ.get("CHARGE_ACCOUNT")
+    if (charge_account is not None):
+        logger.info("Using charge_account from env CHARGE_ACCOUNT: " + charge_account)
+        return charge_account
 
     cime_config = get_cime_config()
-    if (cime_config.has_option('main','SUBPROJECT')):
-        subproject = cime_config.get('main','SUBPROJECT')
-        if (subproject is not None):
-            logger.info("Using subproject from .cime/config: " + subproject)
-            return subproject
+    if (cime_config.has_option('main','CHARGE_ACCOUNT')):
+        charge_account = cime_config.get('main','CHARGE_ACCOUNT')
+        if (charge_account is not None):
+            logger.info("Using charge_account from .cime/config: " + charge_account)
+            return charge_account
 
-    subprojectfile = os.path.abspath(os.path.join(os.path.expanduser("~"), ".cesm_proj"))
-    if (os.path.isfile(subprojectfile)):
-        with open(subprojectfile,'r') as myfile:
+    charge_account_file = os.path.abspath(os.path.join(os.path.expanduser("~"), ".cesm_proj"))
+    if (os.path.isfile(charge_account_file)):
+        with open(charge_account_file,'r') as myfile:
             for line in myfile:
-                subproject = line.rstrip()
-                if not subproject.startswith("#"):
+                charge_account = line.rstrip()
+                if not charge_account.startswith("#"):
                     break
-            logger.info("Using subproject from .cesm_proj: " + subproject)
-            cime_config.set('main','SUBPROJECT',subproject)
-            return subproject
+            logger.info("Using charge_account from .cesm_proj: " + charge_account)
+            cime_config.set('main','CHARGE_ACCOUNT',charge_account)
+            return charge_account
 
     if machobj is not None:
-        subproject = machobj.get_value("SUBPROJECT")
-        if subproject is not None:
-            logger.info("Using subproject from config_machines.xml: " + subproject)
-            return subproject
-    logger.info("No subproject info available, using value from PROJECT")
+        charge_account = machobj.get_value("CHARGE_ACCOUNT")
+        if charge_account is not None:
+            logger.info("Using charge_account from config_machines.xml: " + charge_account)
+            return charge_account
+    logger.info("No charge_account info available, using value from PROJECT")
     return get_project(machobj)
 
 

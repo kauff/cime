@@ -19,7 +19,7 @@
   <xs:element name="PROXY" type="xs:string"/>
   <xs:element name="SAVE_TIMING_DIR" type="xs:string" />
   <xs:element name="PROJECT" type="xs:NCName" />
-  <xs:element name="SUBPROJECT" type="xs:NCName" />
+  <xs:element name="CHARGE_ACCOUNT" type="xs:NCName" />
   <xs:element name="COMPILERS" type="xs:string"/>
   <xs:element name="MPILIBS" type="xs:string"/>
   <xs:element name="CIME_OUTPUT_ROOT" type="xs:string"/>
@@ -72,7 +72,7 @@
 	<!-- PROJECT: A project or account number used for batch jobs
 	  can be overridden in environment or $HOME/.cime/config -->
 	<xs:element ref="PROJECT" minOccurs="0" maxOccurs="1"/>
-	<!-- SUBPROJECT: A subproject or account number used for batch jobs
+	<!-- CHARGE_ACCOUNT: The name of the account to charge for batch jobs
 	  can be overridden in environment or $HOME/.cime/config -->
 	<xs:element ref="SUBPROJECT" minOccurs="0" maxOccurs="1"/>
 	<!-- SAVE_TIMING_DIR: (Acme only) directory to write timing output to -->
