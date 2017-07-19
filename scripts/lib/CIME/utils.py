@@ -619,7 +619,6 @@ def get_project(machobj=None):
 def get_charge_account(machobj=None):
     """
     Hierarchy for choosing CHARGE_ACCOUNT:
-    0. Command line flag to create_newcase or create_test
     1. Environment variable CHARGE_ACCOUNT
     2. File $HOME/.cime/config
     3. config_machines.xml (if machobj provided)
@@ -637,22 +636,12 @@ def get_charge_account(machobj=None):
             logger.info("Using charge_account from .cime/config: " + charge_account)
             return charge_account
 
-    charge_account_file = os.path.abspath(os.path.join(os.path.expanduser("~"), ".cesm_proj"))
-    if (os.path.isfile(charge_account_file)):
-        with open(charge_account_file,'r') as myfile:
-            for line in myfile:
-                charge_account = line.rstrip()
-                if not charge_account.startswith("#"):
-                    break
-            logger.info("Using charge_account from .cesm_proj: " + charge_account)
-            cime_config.set('main','CHARGE_ACCOUNT',charge_account)
-            return charge_account
-
     if machobj is not None:
         charge_account = machobj.get_value("CHARGE_ACCOUNT")
         if charge_account is not None:
             logger.info("Using charge_account from config_machines.xml: " + charge_account)
             return charge_account
+
     logger.info("No charge_account info available, using value from PROJECT")
     return get_project(machobj)
 

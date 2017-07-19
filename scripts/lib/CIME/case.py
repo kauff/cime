@@ -9,7 +9,8 @@ import glob, os, shutil, math, string
 from CIME.XML.standard_module_setup import *
 
 from CIME.utils                     import expect, get_cime_root, append_status
-from CIME.utils                     import convert_to_type, get_model, get_project, get_charge_account
+from CIME.utils                     import convert_to_type, get_model
+from CIME.utils                     import get_project, get_charge_account
 from CIME.utils                     import get_current_commit
 from CIME.check_lockedfiles         import LOCKED_DIR, lock_file
 from CIME.XML.machines              import Machines
@@ -734,7 +735,7 @@ class Case(object):
 
 
     def configure(self, compset_name, grid_name, machine_name=None,
-                  project=None, charge_account=None, pecount=None, compiler=None, 
+                  project=None, pecount=None, compiler=None, 
                   mpilib=None, user_compset=False, pesfile=None,
                   user_grid=False, gridfile=None, ninst=1, test=False,
                   walltime=None, queue=None, output_root=None, run_unsupported=False, answer=None,
@@ -876,8 +877,7 @@ class Case(object):
         elif machobj.get_value("PROJECT_REQUIRED"):
             expect(project is not None, "PROJECT_REQUIRED is true but no project found")
         # Get charge_account id if it exists
-        if charge_account is None:
-            charge_account = get_charge_account(machobj)
+        charge_account = get_charge_account(machobj)
         if charge_account is not None:
             self.set_value("CHARGE_ACCOUNT", charge_account)
             
