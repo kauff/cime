@@ -19,9 +19,14 @@ module shr_pio_mod
   public :: shr_pio_getiotype
   public :: shr_pio_getioroot
   public :: shr_pio_finalize
+  public :: shr_pio_getioformat
+  public :: shr_pio_getrearranger
 
   interface shr_pio_getiotype
      module procedure shr_pio_getiotype_fromid, shr_pio_getiotype_fromname
+  end interface
+  interface shr_pio_getioformat
+     module procedure shr_pio_getioformat_fromid, shr_pio_getioformat_fromname
   end interface
   interface shr_pio_getiosys
      module procedure shr_pio_getiosys_fromid, shr_pio_getiosys_fromname
@@ -31,6 +36,9 @@ module shr_pio_mod
   end interface
   interface shr_pio_getindex
      module procedure shr_pio_getindex_fromid, shr_pio_getindex_fromname
+  end interface
+  interface shr_pio_getrearranger
+     module procedure shr_pio_getrearranger_fromid, shr_pio_getrearranger_fromname
   end interface
 
 
@@ -42,6 +50,7 @@ module shr_pio_mod
      integer :: pio_numiotasks
      integer :: pio_iotype
      integer :: pio_rearranger
+     integer :: pio_netcdf_ioformat
   end type pio_comp_t
 
   character(len=16), allocatable :: io_compname(:)
@@ -52,7 +61,11 @@ module shr_pio_mod
   integer, allocatable :: io_compid(:)
   integer :: pio_debug_level=0, pio_blocksize=0
   integer(kind=pio_offset_kind) :: pio_buffer_size_limit=-1
-  type(pio_rearr_opt_t)  :: pio_rearr_opts
+  integer :: pio_rearr_opt_comm_type, pio_rearr_opt_fcd
+  logical :: pio_rearr_opt_c2i_enable_hs, pio_rearr_opt_c2i_enable_isend
+  integer :: pio_rearr_opt_c2i_max_pend_req
+  logical :: pio_rearr_opt_i2c_enable_hs, pio_rearr_opt_i2c_enable_isend
+  integer :: pio_rearr_opt_i2c_max_pend_req
   integer :: total_comps=0
 
 #define DEBUGI 1
@@ -78,7 +91,7 @@ contains
     integer, intent(inout) :: Global_Comm
 
 
-    integer :: i, pio_root, pio_stride, pio_numiotasks, pio_iotype, pio_rearranger
+    integer :: i, pio_root, pio_stride, pio_numiotasks, pio_iotype, pio_rearranger, pio_netcdf_ioformat
     integer :: mpigrp_world, mpigrp, ierr, mpicom
     character(*),parameter :: subName =   '(shr_pio_init1) '
     integer :: pelist(3,1)
@@ -86,7 +99,7 @@ contains
     call shr_pio_read_default_namelist(nlfilename, Global_Comm, pio_stride, pio_root, pio_numiotasks, &
          pio_iotype, pio_async_interface, pio_rearranger)
 
-
+    pio_netcdf_ioformat = PIO_64BIT_OFFSET
     call MPI_comm_rank(Global_Comm, drank, ierr)
 
     io_comm = MPI_COMM_NULL
@@ -97,6 +110,7 @@ contains
        pio_comp_settings(i)%pio_numiotasks = pio_numiotasks
        pio_comp_settings(i)%pio_iotype = pio_iotype
        pio_comp_settings(i)%pio_rearranger = pio_rearranger
+       pio_comp_settings(i)%pio_netcdf_ioformat = pio_netcdf_ioformat
     end do
     if(pio_async_interface) then
 #ifdef NO_MPI2
@@ -141,9 +155,8 @@ contains
     character(len=*), intent(in) :: comp_name(:)
     integer, intent(in) ::  comp_comm(:), comp_comm_iam(:)
     integer :: i
-    integer :: ncomps
     character(len=shr_kind_cl) :: nlfilename, cname
-    type(iosystem_desc_t) :: iosys
+    integer :: ret
     character(*), parameter :: subName = '(shr_pio_init2) '
 
     if(pio_debug_level>0) then
@@ -176,18 +189,24 @@ contains
     allocate(iosystems(total_comps))
 
     if(pio_async_interface) then
-#ifdef PIO1
-       call pio_init(total_comps,mpi_comm_world, comp_comm, io_comm, iosystems, rearr_opts=pio_rearr_opts)
-
-#else
        call pio_init(total_comps,mpi_comm_world, comp_comm, io_comm, iosystems)
-#endif
+       do i=1,total_comps
+         ret =  pio_set_rearr_opts(iosystems(i), pio_rearr_opt_comm_type,&
+                  pio_rearr_opt_fcd,&
+                  pio_rearr_opt_c2i_enable_hs, pio_rearr_opt_c2i_enable_isend,&
+                  pio_rearr_opt_c2i_max_pend_req,&
+                  pio_rearr_opt_i2c_enable_hs, pio_rearr_opt_i2c_enable_isend,&
+                  pio_rearr_opt_i2c_max_pend_req)
+         if(ret /= PIO_NOERR) then
+            write(shr_log_unit,*) "ERROR: Setting rearranger options failed"
+         end if
+       end do
        i=1
     else
        do i=1,total_comps
           if(comp_iamin(i)) then
              cname = comp_name(i)
-	     if(len_trim(cname) <= 3) then
+             if(len_trim(cname) <= 3) then
                 nlfilename=trim(shr_string_toLower(cname))//'_modelio.nml'
              else
                 nlfilename=trim(shr_string_toLower(cname(1:3)))//'_modelio.nml_'//cname(4:8)
@@ -195,11 +214,21 @@ contains
 
              call shr_pio_read_component_namelist(nlfilename , comp_comm(i), pio_comp_settings(i)%pio_stride, &
                   pio_comp_settings(i)%pio_root, pio_comp_settings(i)%pio_numiotasks, &
-                  pio_comp_settings(i)%pio_iotype, pio_comp_settings(i)%pio_rearranger)
+                  pio_comp_settings(i)%pio_iotype, pio_comp_settings(i)%pio_rearranger, &
+                  pio_comp_settings(i)%pio_netcdf_ioformat)
              call pio_init(comp_comm_iam(i), comp_comm(i), pio_comp_settings(i)%pio_numiotasks, 0, &
                   pio_comp_settings(i)%pio_stride, &
                   pio_comp_settings(i)%pio_rearranger, iosystems(i), &
-                  base=pio_comp_settings(i)%pio_root, rearr_opts=pio_rearr_opts)
+                  base=pio_comp_settings(i)%pio_root)
+             ret = pio_set_rearr_opts(iosystems(i), pio_rearr_opt_comm_type,&
+                    pio_rearr_opt_fcd,&
+                    pio_rearr_opt_c2i_enable_hs, pio_rearr_opt_c2i_enable_isend,&
+                    pio_rearr_opt_c2i_max_pend_req,&
+                    pio_rearr_opt_i2c_enable_hs, pio_rearr_opt_i2c_enable_isend,&
+                    pio_rearr_opt_i2c_max_pend_req)
+             if(ret /= PIO_NOERR) then
+                write(shr_log_unit,*) "ERROR: Setting rearranger options failed"
+             end if
              if(comp_comm_iam(i)==0) then
                 write(shr_log_unit,*) io_compname(i),' : pio_numiotasks = ',pio_comp_settings(i)%pio_numiotasks
                 write(shr_log_unit,*) io_compname(i),' : pio_stride = ',pio_comp_settings(i)%pio_stride
@@ -228,9 +257,7 @@ contains
   subroutine shr_pio_finalize(  )
     integer :: ierr
     integer :: i
-    logical :: active
     do i=1,total_comps
-!       print *,__FILE__,__LINE__,drank,i,iosystems(i)%iosysid
        call pio_finalize(iosystems(i), ierr)
     end do
 
@@ -255,6 +282,44 @@ contains
     io_type = pio_comp_settings(shr_pio_getindex(component))%pio_iotype
 
   end function shr_pio_getiotype_fromname
+
+  function shr_pio_getrearranger_fromid(compid) result(io_type)
+    integer, intent(in) :: compid
+    integer :: io_type
+
+    io_type = pio_comp_settings(shr_pio_getindex(compid))%pio_rearranger
+
+  end function shr_pio_getrearranger_fromid
+
+
+  function shr_pio_getrearranger_fromname(component) result(io_type)
+    ! 'component' must be equal to some element of io_compname(:)
+    ! (but it is case-insensitive)
+    character(len=*), intent(in) :: component
+    integer :: io_type
+
+    io_type = pio_comp_settings(shr_pio_getindex(component))%pio_rearranger
+
+  end function shr_pio_getrearranger_fromname
+
+  function shr_pio_getioformat_fromid(compid) result(io_format)
+    integer, intent(in) :: compid
+    integer :: io_format
+
+    io_format = pio_comp_settings(shr_pio_getindex(compid))%pio_netcdf_ioformat
+
+  end function shr_pio_getioformat_fromid
+
+
+  function shr_pio_getioformat_fromname(component) result(io_format)
+    ! 'component' must be equal to some element of io_compname(:)
+    ! (but it is case-insensitive)
+    character(len=*), intent(in) :: component
+    integer :: io_format
+
+    io_format = pio_comp_settings(shr_pio_getindex(component))%pio_netcdf_ioformat
+
+  end function shr_pio_getioformat_fromname
 
 !===============================================================================
   function shr_pio_getioroot_fromid(compid) result(io_root)
@@ -366,6 +431,7 @@ contains
 
     character(len=shr_kind_cs) :: pio_typename
     character(len=shr_kind_cs) :: pio_rearr_comm_type, pio_rearr_comm_fcd
+    integer :: pio_netcdf_ioformat
     integer :: pio_rearr_comm_max_pend_req_comp2io
     logical :: pio_rearr_comm_enable_hs_comp2io, pio_rearr_comm_enable_isend_comp2io
     integer :: pio_rearr_comm_max_pend_req_io2comp
@@ -374,9 +440,9 @@ contains
 
     integer :: iam, ierr, npes, unitn
     logical :: iamroot
-    namelist /pio_default_inparm/ pio_stride, pio_root, pio_numiotasks, &
-          pio_typename, pio_async_interface, pio_debug_level, pio_blocksize, &
-          pio_buffer_size_limit, pio_rearranger, &
+    namelist /pio_default_inparm/  &
+          pio_async_interface, pio_debug_level, pio_blocksize, &
+          pio_buffer_size_limit, &
           pio_rearr_comm_type, pio_rearr_comm_fcd, &
           pio_rearr_comm_max_pend_req_comp2io, pio_rearr_comm_enable_hs_comp2io, &
           pio_rearr_comm_enable_isend_comp2io, &
@@ -407,6 +473,15 @@ contains
     pio_debug_level = 0 ! no debug info by default
     pio_async_interface = .false.   ! pio tasks are a subset of component tasks
     pio_rearranger = PIO_REARR_SUBSET
+    pio_netcdf_ioformat = PIO_64BIT_OFFSET
+    pio_rearr_comm_type = 'p2p'
+    pio_rearr_comm_fcd = '2denable'
+    pio_rearr_comm_max_pend_req_comp2io = 0
+    pio_rearr_comm_enable_hs_comp2io = .true.
+    pio_rearr_comm_enable_isend_comp2io = .false.
+    pio_rearr_comm_max_pend_req_io2comp = 0
+    pio_rearr_comm_enable_hs_io2comp = .true.
+    pio_rearr_comm_enable_isend_io2comp = .false.
 
     if(iamroot) then
        unitn=shr_file_getunit()
@@ -430,7 +505,7 @@ contains
     end if
 
      call shr_pio_namelist_set(npes, Comm, pio_stride, pio_root, pio_numiotasks, pio_iotype, &
-          iamroot, pio_rearranger)
+          iamroot, pio_rearranger, pio_netcdf_ioformat)
 
     call shr_mpi_bcast(pio_debug_level, Comm)
     call shr_mpi_bcast(pio_blocksize, Comm)
@@ -446,22 +521,25 @@ contains
 
   end subroutine shr_pio_read_default_namelist
 
-  subroutine shr_pio_read_component_namelist(nlfilename, Comm, pio_stride, pio_root, pio_numiotasks, pio_iotype, pio_rearranger)
+  subroutine shr_pio_read_component_namelist(nlfilename, Comm, pio_stride, pio_root, &
+       pio_numiotasks, pio_iotype, pio_rearranger, pio_netcdf_ioformat)
     character(len=*), intent(in) :: nlfilename
     integer, intent(in) :: Comm
 
-    integer, intent(inout) :: pio_stride, pio_root, pio_numiotasks, pio_iotype, pio_rearranger
+    integer, intent(inout) :: pio_stride, pio_root, pio_numiotasks
+    integer, intent(inout) :: pio_iotype, pio_rearranger, pio_netcdf_ioformat
     character(len=SHR_KIND_CS) ::  pio_typename
+    character(len=SHR_KIND_CS) ::  pio_netcdf_format
     integer :: unitn
 
     integer :: iam, ierr, npes
     logical :: iamroot
     character(*),parameter :: subName =   '(shr_pio_read_component_namelist) '
     integer :: pio_default_stride, pio_default_root, pio_default_numiotasks, pio_default_iotype
-    integer :: pio_default_rearranger
+    integer :: pio_default_rearranger, pio_default_netcdf_ioformat
 
     namelist /pio_inparm/ pio_stride, pio_root, pio_numiotasks, &
-         pio_typename, pio_rearranger
+         pio_typename, pio_rearranger, pio_netcdf_format
 
 
 
@@ -481,7 +559,7 @@ contains
     pio_default_numiotasks = pio_numiotasks
     pio_default_iotype = pio_iotype
     pio_default_rearranger = pio_rearranger
-
+    pio_default_netcdf_ioformat = PIO_64BIT_OFFSET
 
     !--------------------------------------------------------------------------
     ! read io nml parameters
@@ -491,6 +569,7 @@ contains
     pio_root     = -99
     pio_typename = 'nothing'
     pio_rearranger = -99
+    pio_netcdf_format = '64bit_offset'
 
     if(iamroot) then
        unitn=shr_file_getunit()
@@ -502,6 +581,7 @@ contains
            pio_numiotasks = pio_default_numiotasks
            pio_iotype     = pio_default_iotype
            pio_rearranger = pio_default_rearranger
+           pio_netcdf_ioformat = pio_default_netcdf_ioformat
        else
           ierr = 1
           do while( ierr /= 0 )
@@ -515,8 +595,15 @@ contains
           call shr_file_freeUnit( unitn )
 
           call shr_pio_getiotypefromname(pio_typename, pio_iotype, pio_default_iotype)
+          call shr_pio_getioformatfromname(pio_netcdf_format, pio_netcdf_ioformat, pio_default_netcdf_ioformat)
        end if
-       if(pio_stride== -99) pio_stride = pio_default_stride
+       if(pio_stride== -99) then
+          if (pio_numiotasks > 0) then
+             pio_stride = npes/pio_numiotasks
+          else
+             pio_stride = pio_default_stride
+          endif
+       endif
        if(pio_root == -99) pio_root = pio_default_root
        if(pio_rearranger == -99) pio_rearranger = pio_default_rearranger
        if(pio_numiotasks == -99) then
@@ -527,10 +614,32 @@ contains
 
 
     call shr_pio_namelist_set(npes, Comm, pio_stride, pio_root, pio_numiotasks, pio_iotype, &
-         iamroot, pio_rearranger)
+         iamroot, pio_rearranger, pio_netcdf_ioformat)
 
 
   end subroutine shr_pio_read_component_namelist
+
+  subroutine shr_pio_getioformatfromname(pio_netcdf_format, pio_netcdf_ioformat, pio_default_netcdf_ioformat)
+    use shr_string_mod, only : shr_string_toupper
+    character(len=*), intent(inout) :: pio_netcdf_format
+    integer, intent(out) :: pio_netcdf_ioformat
+    integer, intent(in) :: pio_default_netcdf_ioformat
+
+    pio_netcdf_format = shr_string_toupper(pio_netcdf_format)
+    if ( pio_netcdf_format .eq. 'CLASSIC' ) then
+       pio_netcdf_ioformat = 0
+    elseif ( pio_netcdf_format .eq. '64BIT_OFFSET' ) then
+       pio_netcdf_ioformat = PIO_64BIT_OFFSET
+#ifdef _PNETCDF
+    elseif ( pio_netcdf_format .eq. '64BIT_DATA' ) then
+       pio_netcdf_ioformat = PIO_64BIT_DATA
+#endif
+    else
+       pio_netcdf_ioformat = pio_default_netcdf_ioformat
+    endif
+
+  end subroutine shr_pio_getioformatfromname
+
 
   subroutine shr_pio_getiotypefromname(typename, iotype, defaulttype)
     use shr_string_mod, only : shr_string_toupper
@@ -547,9 +656,6 @@ contains
        iotype = pio_iotype_netcdf4p
     else if ( typename .eq. 'NETCDF4C') then
        iotype = pio_iotype_netcdf4c
-!  Not yet supported
-!    else if ( typename .eq. 'VDC') then
-!       iotype = pio_iotype_vdc
     else if ( typename .eq. 'NOTHING') then
        iotype = defaulttype
     else if ( typename .eq. 'DEFAULT') then
@@ -563,10 +669,10 @@ contains
 
 !===============================================================================
   subroutine shr_pio_namelist_set(npes,mycomm, pio_stride, pio_root, pio_numiotasks, &
-       pio_iotype, iamroot, pio_rearranger)
+       pio_iotype, iamroot, pio_rearranger, pio_netcdf_ioformat)
     integer, intent(in) :: npes, mycomm
     integer, intent(inout) :: pio_stride, pio_root, pio_numiotasks
-    integer, intent(inout) :: pio_iotype, pio_rearranger
+    integer, intent(inout) :: pio_iotype, pio_rearranger, pio_netcdf_ioformat
     logical, intent(in) :: iamroot
     character(*),parameter :: subName =   '(shr_pio_namelist_set) '
 
@@ -575,6 +681,7 @@ contains
     call shr_mpi_bcast(pio_root    , mycomm)
     call shr_mpi_bcast(pio_numiotasks, mycomm)
     call shr_mpi_bcast(pio_rearranger, mycomm)
+    call shr_mpi_bcast(pio_netcdf_ioformat, mycomm)
 
     if (pio_root<0) then
        pio_root = 1
@@ -782,29 +889,29 @@ contains
     ! buf(6) = max_pend_req_io2comp
     ! buf(7) = enable_hs_io2comp
     ! buf(8) = enable_isend_io2comp
-    pio_rearr_opts%comm_type = buf(1)
-    pio_rearr_opts%fcd = buf(2)
-    pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req = buf(3)
+    pio_rearr_opt_comm_type = buf(1)
+    pio_rearr_opt_fcd = buf(2)
+    pio_rearr_opt_c2i_max_pend_req = buf(3)
     if(buf(4) == 0) then
-      pio_rearr_opts%comm_fc_opts_comp2io%enable_hs = .false.
+      pio_rearr_opt_c2i_enable_hs = .false.
     else
-      pio_rearr_opts%comm_fc_opts_comp2io%enable_hs = .true.
+      pio_rearr_opt_c2i_enable_hs = .true.
     end if
     if(buf(5) == 0) then
-      pio_rearr_opts%comm_fc_opts_comp2io%enable_isend = .false.
+      pio_rearr_opt_c2i_enable_isend = .false.
     else
-      pio_rearr_opts%comm_fc_opts_comp2io%enable_isend = .true.
+      pio_rearr_opt_c2i_enable_isend = .true.
     end if
-    pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req = buf(6)
+    pio_rearr_opt_i2c_max_pend_req = buf(6)
     if(buf(7) == 0) then
-      pio_rearr_opts%comm_fc_opts_io2comp%enable_hs = .false.
+      pio_rearr_opt_i2c_enable_hs = .false.
     else
-      pio_rearr_opts%comm_fc_opts_io2comp%enable_hs = .true.
+      pio_rearr_opt_i2c_enable_hs = .true.
     end if
     if(buf(8) == 0) then
-      pio_rearr_opts%comm_fc_opts_io2comp%enable_isend = .false.
+      pio_rearr_opt_i2c_enable_isend = .false.
     else
-      pio_rearr_opts%comm_fc_opts_io2comp%enable_isend = .true.
+      pio_rearr_opt_i2c_enable_isend = .true.
     end if
   end subroutine
 !===============================================================================

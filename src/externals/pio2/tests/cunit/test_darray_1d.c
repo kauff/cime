@@ -2,8 +2,10 @@
  * Tests for PIO distributed arrays. This test uses 1 dimension,
  * everything very simple. ;-)
  *
- * Ed Hartnett, 2/27/17
+ * @author Ed Hartnett
+ * @date 2/27/17
  */
+#include <config.h>
 #include <pio.h>
 #include <pio_internal.h>
 #include <pio_tests.h>
@@ -76,8 +78,6 @@ int create_decomposition_1d(int ntasks, int my_rank, int iosysid, int pio_type, 
                                compdof, ioid, NULL, NULL, NULL)))
         ERR(ret);
 
-    printf("%d decomposition initialized.\n", my_rank);
-
     return 0;
 }
 
@@ -92,7 +92,7 @@ int create_decomposition_1d(int ntasks, int my_rank, int iosysid, int pio_type, 
  * @param my_rank rank of this task.
  * @param test_comm the MPI communicator running the test.
  * @returns 0 for success, error code otherwise.
-*/
+ */
 int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *flavor,
                      int my_rank, MPI_Comm test_comm)
 {
@@ -107,18 +107,51 @@ int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *
     void *test_data_in;
     void *expected_in;
     PIO_Offset type_size;             /* Size of the data type. */
-    float my_float_rank = my_rank;    /* my_rank in a float. */
-    double my_double_rank = my_rank;  /* my_rank in a double. */
+    /* My rank as each type. */
+    signed char my_byte_rank = my_rank;
+    char my_char_rank = my_rank;
+    short my_short_rank = my_rank;
+    float my_float_rank = my_rank;
+    double my_double_rank = my_rank;
+#ifdef _NETCDF4
+    unsigned char my_ubyte_rank = my_rank;
+    unsigned short my_ushort_rank = my_rank;
+    unsigned int my_uint_rank = my_rank;
+    long long my_int64_rank = my_rank;
+    unsigned long long my_uint64_rank = my_rank;
+#endif /* _NETCDF4 */
+
+    /* Default fill value for each type. */
+    signed char byte_fill = NC_FILL_BYTE;
+    char char_fill = NC_FILL_CHAR;
+    short short_fill = NC_FILL_SHORT;
     int int_fill = NC_FILL_INT;
     float float_fill = NC_FILL_FLOAT;
     double double_fill = NC_FILL_DOUBLE;
+#ifdef _NETCDF4
+    unsigned char ubyte_fill = NC_FILL_UBYTE;
+    unsigned short ushort_fill = NC_FILL_USHORT;
+    unsigned int uint_fill = NC_FILL_UINT;
+    long long int64_fill = NC_FILL_INT64;
+    unsigned long long uint64_fill = NC_FILL_UINT64;
+#endif /* _NETCDF4 */
+
     void *bufr;
-    int ret;                        /* Return code. */
+    int ret; /* Return code. */
 
     /* Use PIO to create the example file in each of the four
      * available ways. */
     for (int fmt = 0; fmt < num_flavors; fmt++)
     {
+        /* BYTE and CHAR don't work with pnetcdf. Don't know why yet. */
+        if (flavor[fmt] == PIO_IOTYPE_PNETCDF && (pio_type == PIO_BYTE || pio_type == PIO_CHAR))
+            continue;
+
+        /* NetCDF-4 types only work with netCDF-4 formats. */
+        if (pio_type > PIO_DOUBLE && flavor[fmt] != PIO_IOTYPE_NETCDF4C &&
+            flavor[fmt] != PIO_IOTYPE_NETCDF4P)
+            continue;
+
         for (int with_fillvalue = 0; with_fillvalue < NUM_FILLVALUE_PRESENT_TESTS; with_fillvalue++)
         {
             /* Create the filename. */
@@ -126,8 +159,6 @@ int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *
                     pio_type, with_fillvalue);
 
             /* Create the netCDF output file. */
-            printf("rank: %d Creating sample file %s with format %d...\n", my_rank, filename,
-                   flavor[fmt]);
             if ((ret = PIOc_createfile(iosysid, &ncid, &flavor[fmt], filename, PIO_CLOBBER)))
                 ERR(ret);
 
@@ -152,11 +183,37 @@ int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *
                 return ret;
 
             /* Initialize some data. */
+            signed char byte_test_data[2] = {my_rank, my_rank};
+            char char_test_data[2] = {my_rank, my_rank};
+            short short_test_data[2] = {my_rank, my_rank};
             int int_test_data[2] = {my_rank, my_rank};
             float float_test_data[2] = {my_rank, my_rank};
             double double_test_data[2] = {my_rank, my_rank};
+#ifdef _NETCDF4
+            unsigned char ubyte_test_data[2] = {my_rank, my_rank};
+            unsigned short ushort_test_data[2] = {my_rank, my_rank};
+            unsigned int uint_test_data[2] = {my_rank, my_rank};
+            long long int64_test_data[2] = {my_rank, my_rank};
+            unsigned long long uint64_test_data[2] = {my_rank, my_rank};
+#endif /* _NETCDF4 */
+
             switch (pio_type)
             {
+            case PIO_BYTE:
+                test_data = byte_test_data;
+                fillvalue = with_fillvalue ? &byte_fill : NULL;
+                expected_in = &my_byte_rank;
+                break;
+            case PIO_CHAR:
+                test_data = char_test_data;
+                fillvalue = with_fillvalue ? &char_fill : NULL;
+                expected_in = &my_char_rank;
+                break;
+            case PIO_SHORT:
+                test_data = short_test_data;
+                fillvalue = with_fillvalue ? &short_fill : NULL;
+                expected_in = &my_short_rank;
+                break;
             case PIO_INT:
                 test_data = int_test_data;
                 fillvalue = with_fillvalue ? &int_fill : NULL;
@@ -172,16 +229,42 @@ int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *
                 fillvalue = with_fillvalue ? &double_fill : NULL;
                 expected_in = &my_double_rank;
                 break;
+#ifdef _NETCDF4
+            case PIO_UBYTE:
+                test_data = ubyte_test_data;
+                fillvalue = with_fillvalue ? &ubyte_fill : NULL;
+                expected_in = &my_ubyte_rank;
+                break;
+            case PIO_USHORT:
+                test_data = ushort_test_data;
+                fillvalue = with_fillvalue ? &ushort_fill : NULL;
+                expected_in = &my_ushort_rank;
+                break;
+            case PIO_UINT:
+                test_data = uint_test_data;
+                fillvalue = with_fillvalue ? &uint_fill : NULL;
+                expected_in = &my_uint_rank;
+                break;
+            case PIO_INT64:
+                test_data = int64_test_data;
+                fillvalue = with_fillvalue ? &int64_fill : NULL;
+                expected_in = &my_int64_rank;
+                break;
+            case PIO_UINT64:
+                test_data = uint64_test_data;
+                fillvalue = with_fillvalue ? &uint64_fill : NULL;
+                expected_in = &my_uint64_rank;
+                break;
+#endif /* _NETCDF4 */
             default:
                 return ERR_WRONG;
             }
 
-            /* Write the data. Our test_data contains only one real value
-             * (instead of 2, as indicated by arraylen), but due to the
-             * decomposition, only the first value is used in the
-             * output. */
-            if ((ret = PIOc_write_darray(ncid, varid, ioid, arraylen, test_data,
-                                         fillvalue)))
+            /* Write the data. Our test_data contains only one real
+             * value (instead of 2, as indicated by arraylen), but due
+             * to the decomposition, only the first value is used in
+             * the output. */
+            if ((ret = PIOc_write_darray(ncid, varid, ioid, arraylen, test_data, fillvalue)))
                 ERR(ret);
 
             /* Close the netCDF file. */
@@ -221,6 +304,18 @@ int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *
             {
                 switch (pio_type)
                 {
+                case PIO_BYTE:
+                    if (((signed char *)bufr)[e] != (e < 4 ? e : NC_FILL_BYTE))
+                        return ERR_WRONG;
+                    break;
+                case PIO_CHAR:
+                    if (((char *)bufr)[e] != (e < 4 ? e : NC_FILL_CHAR))
+                        return ERR_WRONG;
+                    break;
+                case PIO_SHORT:
+                    if (((short *)bufr)[e] != (e < 4 ? e : NC_FILL_SHORT))
+                        return ERR_WRONG;
+                    break;
                 case PIO_INT:
                     if (((int *)bufr)[e] != (e < 4 ? e : NC_FILL_INT))
                         return ERR_WRONG;
@@ -233,6 +328,28 @@ int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *
                     if (((double *)bufr)[e] != (e < 4 ? e : NC_FILL_DOUBLE))
                         return ERR_WRONG;
                     break;
+#ifdef _NETCDF4
+                case PIO_UBYTE:
+                    if (((unsigned char *)bufr)[e] != (e < 4 ? e : NC_FILL_UBYTE))
+                        return ERR_WRONG;
+                    break;
+                case PIO_USHORT:
+                    if (((unsigned short *)bufr)[e] != (e < 4 ? e : NC_FILL_USHORT))
+                        return ERR_WRONG;
+                    break;
+                case PIO_UINT:
+                    if (((unsigned int *)bufr)[e] != (e < 4 ? e : NC_FILL_UINT))
+                        return ERR_WRONG;
+                    break;
+                case PIO_INT64:
+                    if (((long long *)bufr)[e] != (e < 4 ? e : NC_FILL_INT64))
+                        return ERR_WRONG;
+                    break;
+                case PIO_UINT64:
+                    if (((unsigned long long *)bufr)[e] != (e < 4 ? e : NC_FILL_UINT64))
+                        return ERR_WRONG;
+                    break;
+#endif /* _NETCDF4 */
                 default:
                     return ERR_WRONG;
                 }
@@ -242,7 +359,6 @@ int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *
             free(bufr);
 
             /* Close the netCDF file. */
-            printf("%d Closing the sample data file...\n", my_rank);
             if ((ret = PIOc_closefile(ncid)))
                 ERR(ret);
         } /* with_fillvalue */
@@ -262,7 +378,7 @@ int test_darray_fill(int iosysid, int ioid, int pio_type, int num_flavors, int *
  * @param my_rank rank of this task.
  * @param test_comm the MPI communicator running the test.
  * @returns 0 for success, error code otherwise.
-*/
+ */
 int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
                            int *flavor, int my_rank, MPI_Comm test_comm)
 {
@@ -277,11 +393,35 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
     void *test_data_in;
     void *expected_in;
     PIO_Offset type_size;             /* Size of the data type. */
-    float my_float_rank = my_rank;    /* my_rank in a float. */
-    double my_double_rank = my_rank;  /* my_rank in a double. */
+
+    /* My rank as each type. */
+    signed char my_byte_rank = my_rank;
+    char my_char_rank = my_rank;
+    short my_short_rank = my_rank;
+    float my_float_rank = my_rank;
+    double my_double_rank = my_rank;
+#ifdef _NETCDF4
+    unsigned char my_ubyte_rank = my_rank;
+    unsigned short my_ushort_rank = my_rank;
+    unsigned int my_uint_rank = my_rank;
+    long long my_int64_rank = my_rank;
+    unsigned long long my_uint64_rank = my_rank;
+#endif /* _NETCDF4 */
+
+    /* Default fill value for each type. */
+    signed char byte_fill = NC_FILL_BYTE;
+    char char_fill = NC_FILL_CHAR;
+    short short_fill = NC_FILL_SHORT;
     int int_fill = NC_FILL_INT;
     float float_fill = NC_FILL_FLOAT;
     double double_fill = NC_FILL_DOUBLE;
+#ifdef _NETCDF4
+    unsigned char ubyte_fill = NC_FILL_UBYTE;
+    unsigned short ushort_fill = NC_FILL_USHORT;
+    unsigned int uint_fill = NC_FILL_UINT;
+    long long int64_fill = NC_FILL_INT64;
+    unsigned long long uint64_fill = NC_FILL_UINT64;
+#endif /* _NETCDF4 */
     void *bufr;
     int ret;                        /* Return code. */
 
@@ -289,13 +429,20 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
      * available ways. */
     for (int fmt = 0; fmt < num_flavors; fmt++)
     {
+        /* BYTE and CHAR don't work with pnetcdf. Don't know why yet. */
+        if (flavor[fmt] == PIO_IOTYPE_PNETCDF && (pio_type == PIO_BYTE || pio_type == PIO_CHAR))
+            continue;
+
+        /* NetCDF-4 types only work with netCDF-4 formats. */
+        if (pio_type > PIO_DOUBLE && flavor[fmt] != PIO_IOTYPE_NETCDF4C &&
+            flavor[fmt] != PIO_IOTYPE_NETCDF4P)
+            continue;
+
         /* Create the filename. */
         sprintf(filename, "data_%s_iotype_%d_pio_type_%d_unlim.nc", TEST_NAME, flavor[fmt],
                 pio_type);
 
         /* Create the netCDF output file. */
-        printf("rank: %d Creating sample file %s with format %d...\n", my_rank, filename,
-               flavor[fmt]);
         if ((ret = PIOc_createfile(iosysid, &ncid, &flavor[fmt], filename, PIO_CLOBBER)))
             ERR(ret);
 
@@ -322,11 +469,36 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
             return ret;
 
         /* Initialize some data. */
+        signed char byte_test_data[2] = {my_rank, my_rank};
+        char char_test_data[2] = {my_rank, my_rank};
+        short short_test_data[2] = {my_rank, my_rank};
         int int_test_data[2] = {my_rank, my_rank};
         float float_test_data[2] = {my_rank, my_rank};
         double double_test_data[2] = {my_rank, my_rank};
+#ifdef _NETCDF4
+        unsigned char ubyte_test_data[2] = {my_rank, my_rank};
+        unsigned short ushort_test_data[2] = {my_rank, my_rank};
+        unsigned int uint_test_data[2] = {my_rank, my_rank};
+        long long int64_test_data[2] = {my_rank, my_rank};
+        unsigned long long uint64_test_data[2] = {my_rank, my_rank};
+#endif /* _NETCDF4 */
         switch (pio_type)
         {
+        case PIO_BYTE:
+            test_data = byte_test_data;
+            fillvalue = &byte_fill;
+            expected_in = &my_byte_rank;
+            break;
+        case PIO_CHAR:
+            test_data = char_test_data;
+            fillvalue = &char_fill;
+            expected_in = &my_char_rank;
+            break;
+        case PIO_SHORT:
+            test_data = short_test_data;
+            fillvalue = &short_fill;
+            expected_in = &my_short_rank;
+            break;
         case PIO_INT:
             test_data = int_test_data;
             fillvalue = &int_fill;
@@ -342,6 +514,33 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
             fillvalue = &double_fill;
             expected_in = &my_double_rank;
             break;
+#ifdef _NETCDF4
+        case PIO_UBYTE:
+            test_data = ubyte_test_data;
+            fillvalue = &ubyte_fill;
+            expected_in = &my_ubyte_rank;
+            break;
+        case PIO_USHORT:
+            test_data = ushort_test_data;
+            fillvalue = &ushort_fill;
+            expected_in = &my_ushort_rank;
+            break;
+        case PIO_UINT:
+            test_data = uint_test_data;
+            fillvalue = &uint_fill;
+            expected_in = &my_uint_rank;
+            break;
+        case PIO_INT64:
+            test_data = int64_test_data;
+            fillvalue = &int64_fill;
+            expected_in = &my_int64_rank;
+            break;
+        case PIO_UINT64:
+            test_data = uint64_test_data;
+            fillvalue = &uint64_fill;
+            expected_in = &my_uint64_rank;
+            break;
+#endif /* _NETCDF4 */
         default:
             return ERR_WRONG;
         }
@@ -380,6 +579,10 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
         if (!(test_data_in = malloc(type_size * arraylen)))
             ERR(PIO_ENOMEM);
 
+        /* Set the record number for the unlimited dimension. */
+        if ((ret = PIOc_setframe(ncid, varid, 0)))
+            ERR(ret);
+
         /* Read the data. */
         if ((ret = PIOc_read_darray(ncid, varid, ioid, arraylen, test_data_in)))
             ERR(ret);
@@ -406,6 +609,18 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
         {
             switch (pio_type)
             {
+            case PIO_BYTE:
+                if (((signed char *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_BYTE))
+                    return ERR_WRONG;
+                break;
+            case PIO_CHAR:
+                if (((char *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_CHAR))
+                    return ERR_WRONG;
+                break;
+            case PIO_SHORT:
+                if (((short *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_SHORT))
+                    return ERR_WRONG;
+                break;
             case PIO_INT:
                 if (((int *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_INT))
                     return ERR_WRONG;
@@ -418,6 +633,28 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
                 if (((double *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_DOUBLE))
                     return ERR_WRONG;
                 break;
+#ifdef _NETCDF4
+            case PIO_UBYTE:
+                if (((unsigned char *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_UBYTE))
+                    return ERR_WRONG;
+                break;
+            case PIO_USHORT:
+                if (((unsigned short *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_USHORT))
+                    return ERR_WRONG;
+                break;
+            case PIO_UINT:
+                if (((unsigned int *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_UINT))
+                    return ERR_WRONG;
+                break;
+            case PIO_INT64:
+                if (((long long *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_INT64))
+                    return ERR_WRONG;
+                break;
+            case PIO_UINT64:
+                if (((unsigned long long *)bufr)[e] != (e % 8 < 4 ? e % 8 : NC_FILL_UINT64))
+                    return ERR_WRONG;
+                break;
+#endif /* _NETCDF4 */
             default:
                 return ERR_WRONG;
             }
@@ -427,7 +664,6 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
         free(bufr);
 
         /* Close the netCDF file. */
-        printf("%d Closing the sample data file...\n", my_rank);
         if ((ret = PIOc_closefile(ncid)))
             ERR(ret);
     } /* next iotype */
@@ -447,7 +683,7 @@ int test_darray_fill_unlim(int iosysid, int ioid, int pio_type, int num_flavors,
  * @param rearranger the rearranger in use.
  * @param test_comm the MPI communicator for this test.
  * @returns 0 for success, error code otherwise.
-*/
+ */
 int test_decomp_read_write(int iosysid, int ioid, int num_flavors, int *flavor, int my_rank,
                            int pio_type, int rearranger, MPI_Comm test_comm)
 {
@@ -465,13 +701,10 @@ int test_decomp_read_write(int iosysid, int ioid, int num_flavors, int *flavor, 
         /* Create the filename. */
         sprintf(filename, "decomp_%s_iotype_%d.nc", TEST_NAME, flavor[fmt]);
 
-        printf("writing decomp file %s\n", filename);
-        if ((ret = PIOc_write_nc_decomp(iosysid, filename, 0, ioid, test_comm, NULL,
-                                        NULL, 0)))
+        if ((ret = PIOc_write_nc_decomp(iosysid, filename, 0, ioid, NULL, NULL, 0)))
             return ret;
 
         /* Read the data. */
-        printf("reading decomp file %s\n", filename);
         if ((ret = PIOc_read_nc_decomp(iosysid, filename, &ioid2, test_comm, pio_type,
                                        title_in, history_in, &fortran_order_in)))
             return ret;
@@ -480,10 +713,19 @@ int test_decomp_read_write(int iosysid, int ioid, int num_flavors, int *flavor, 
         {
             iosystem_desc_t *ios;
             io_desc_t *iodesc;
-            int expected_basetype;
+            MPI_Datatype expected_basetype;
 
             switch (pio_type)
             {
+            case PIO_BYTE:
+                expected_basetype = MPI_BYTE;
+                break;
+            case PIO_CHAR:
+                expected_basetype = MPI_CHAR;
+                break;
+            case PIO_SHORT:
+                expected_basetype = MPI_SHORT;
+                break;
             case PIO_INT:
                 expected_basetype = MPI_INT;
                 break;
@@ -493,6 +735,23 @@ int test_decomp_read_write(int iosysid, int ioid, int num_flavors, int *flavor, 
             case PIO_DOUBLE:
                 expected_basetype = MPI_DOUBLE;
                 break;
+#ifdef _NETCDF4
+            case PIO_UBYTE:
+                expected_basetype = MPI_UNSIGNED_CHAR;
+                break;
+            case PIO_USHORT:
+                expected_basetype = MPI_UNSIGNED_SHORT;
+                break;
+            case PIO_UINT:
+                expected_basetype = MPI_UNSIGNED;
+                break;
+            case PIO_INT64:
+                expected_basetype = MPI_LONG_LONG;
+                break;
+            case PIO_UINT64:
+                expected_basetype = MPI_UNSIGNED_LONG_LONG;
+                break;
+#endif /* _NETCDF4 */
             default:
                 return ERR_WRONG;
             }
@@ -510,12 +769,11 @@ int test_decomp_read_write(int iosysid, int ioid, int num_flavors, int *flavor, 
             /*     return ERR_WRONG; */
             /* if (iodesc->num_aiotasks != TARGET_NTASKS) */
             /*     return ERR_WRONG; */
-            printf("iodesc->nrecvs = %d iodesc->num_aiotasks = %d\n", iodesc->nrecvs, iodesc->num_aiotasks);
             if (iodesc->ndof != EXPECTED_MAPLEN)
                 return ERR_WRONG;
             if (iodesc->rearranger != rearranger || iodesc->maxregions != 1)
                 return ERR_WRONG;
-            if (!iodesc->needsfill || iodesc->basetype != expected_basetype)
+            if (!iodesc->needsfill || iodesc->mpitype != expected_basetype)
                 return ERR_WRONG;
             /* Don't forget to add 1!! */
             if (iodesc->map[0] != my_rank + 1 || iodesc->map[1] != 0)
@@ -536,8 +794,14 @@ int main(int argc, char **argv)
 {
 #define NUM_REARRANGERS_TO_TEST 2
     int rearranger[NUM_REARRANGERS_TO_TEST] = {PIO_REARR_BOX, PIO_REARR_SUBSET};
-#define NUM_TYPES_TO_TEST 3
-    int test_type[NUM_TYPES_TO_TEST] = {PIO_INT, PIO_FLOAT, PIO_DOUBLE};
+#ifdef _NETCDF4
+#define NUM_TYPES_TO_TEST 11
+    int test_type[NUM_TYPES_TO_TEST] = {PIO_BYTE, PIO_CHAR, PIO_SHORT, PIO_INT, PIO_FLOAT, PIO_DOUBLE,
+                                        PIO_UBYTE, PIO_USHORT, PIO_UINT, PIO_INT64, PIO_UINT64};
+#else
+#define NUM_TYPES_TO_TEST 6
+    int test_type[NUM_TYPES_TO_TEST] = {PIO_BYTE, PIO_CHAR, PIO_SHORT, PIO_INT, PIO_FLOAT, PIO_DOUBLE};
+#endif /* _NETCDF4 */
     int my_rank;
     int ntasks;
     int num_flavors; /* Number of PIO netCDF flavors in this build. */
@@ -547,7 +811,7 @@ int main(int argc, char **argv)
 
     /* Initialize test. */
     if ((ret = pio_test_init2(argc, argv, &my_rank, &ntasks, MIN_NTASKS,
-                              MIN_NTASKS, 3, &test_comm)))
+                              MIN_NTASKS, -1, &test_comm)))
         ERR(ERR_INIT);
 
     if ((ret = PIOc_set_iosystem_error_handling(PIO_DEFAULT, PIO_RETURN_ERROR, NULL)))
@@ -565,7 +829,6 @@ int main(int argc, char **argv)
         /* Figure out iotypes. */
         if ((ret = get_iotypes(&num_flavors, flavor)))
             ERR(ret);
-        printf("Runnings tests for %d flavors\n", num_flavors);
 
         for (int r = 0; r < NUM_REARRANGERS_TO_TEST; r++)
         {
@@ -611,7 +874,6 @@ int main(int argc, char **argv)
     } /* endif my_rank < TARGET_NTASKS */
 
     /* Finalize the MPI library. */
-    printf("%d %s Finalizing...\n", my_rank, TEST_NAME);
     if ((ret = pio_test_finalize(&test_comm)))
         return ret;
 

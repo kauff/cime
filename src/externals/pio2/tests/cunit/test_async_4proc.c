@@ -3,8 +3,9 @@
  *
  * This very simple test runs on 4 ranks.
  *
- * Ed Hartnett
+ * @author Ed Hartnett
  */
+#include <config.h>
 #include <pio.h>
 #include <pio_tests.h>
 
@@ -32,17 +33,17 @@ int main(int argc, char **argv)
     int ret; /* Return code. */
     MPI_Comm test_comm;
 
-    /* Num procs for IO and computation. */
-    int num_procs[NUM_COMBOS][COMPONENT_COUNT + 1] = {{3, 1}, {2, 2}, {1, 3}};
+    /* Num procs for computation. */
+    int num_procs2[NUM_COMBOS][COMPONENT_COUNT] = {{1}, {2}, {3}};
 
     /* Number of processors that will do IO. */
     int num_io_procs[NUM_COMBOS] = {3, 2, 1};
 
     /* Initialize test. */
-    if ((ret = pio_test_init(argc, argv, &my_rank, &ntasks, TARGET_NTASKS,
-			     &test_comm)))
+    if ((ret = pio_test_init2(argc, argv, &my_rank, &ntasks, TARGET_NTASKS, TARGET_NTASKS,
+                              -1, &test_comm)))
         ERR(ERR_INIT);
-    
+
     /* Test code runs on TARGET_NTASKS tasks. The left over tasks do
      * nothing. */
     if (my_rank < TARGET_NTASKS)
@@ -57,12 +58,9 @@ int main(int argc, char **argv)
             int comp_task = my_rank < num_io_procs[combo] ? 0 : 1;
 
             /* Initialize the IO system. */
-            if ((ret = PIOc_Init_Async(test_comm, num_io_procs[combo], NULL, COMPONENT_COUNT,
-                                       num_procs[combo], NULL, NULL, NULL, iosysid)))
+            if ((ret = PIOc_init_async(test_comm, num_io_procs[combo], NULL, COMPONENT_COUNT,
+                                       num_procs2[combo], NULL, NULL, NULL, PIO_REARR_BOX, iosysid)))
                 ERR(ERR_INIT);
-
-            for (int c = 0; c < COMPONENT_COUNT; c++)
-                printf("%d iosysid[%d] = %d\n", my_rank, c, iosysid[c]);
 
             /* All the netCDF calls are only executed on the computation
              * tasks. The IO tasks have not returned from PIOc_Init_Intercomm,
@@ -84,7 +82,6 @@ int main(int argc, char **argv)
                         sprintf(filename, "%s_%s_%d_%d.nc", TEST_NAME, iotype_name, sample, my_comp_idx);
 
                         /* Create sample file. */
-                        printf("%d %s creating file %s\n", my_rank, TEST_NAME, filename);
                         if ((ret = create_nc_sample(sample, iosysid[my_comp_idx], flavor[flv], filename, my_rank, NULL)))
                             ERR(ret);
 
@@ -95,24 +92,17 @@ int main(int argc, char **argv)
                 } /* next netcdf flavor */
 
                 /* Finalize the IO system. Only call this from the computation tasks. */
-                printf("%d %s Freeing PIO resources\n", my_rank, TEST_NAME);
                 for (int c = 0; c < COMPONENT_COUNT; c++)
-                {
                     if ((ret = PIOc_finalize(iosysid[c])))
                         ERR(ret);
-                    printf("%d %s PIOc_finalize completed for iosysid = %d\n", my_rank, TEST_NAME,
-                           iosysid[c]);
-                }
             } /* endif comp_task */
 
             /* Wait for everyone to catch up. */
-            printf("%d %s waiting for all processes!\n", my_rank, TEST_NAME);
             MPI_Barrier(test_comm);
         } /* next combo */
     }/* my_rank < TARGET_NTASKS */
 
     /* Finalize test. */
-    printf("%d %s finalizing...\n", my_rank, TEST_NAME);
     if ((ret = pio_test_finalize(&test_comm)))
         return ERR_AWFUL;
 

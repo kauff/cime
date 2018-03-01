@@ -9,8 +9,9 @@
  * <pre>mpiexec -n 4 valgrind -v --leak-check=full --suppressions=../../../tests/unit/valsupp_test.supp
  * --error-exitcode=99 --track-origins=yes ./test_async_simple</pre>
  *
- * Ed Hartnett
+ * @author Ed Hartnett
  */
+#include <config.h>
 #include <pio.h>
 #include <pio_tests.h>
 
@@ -29,18 +30,23 @@
 /* Run simple async test. */
 int main(int argc, char **argv)
 {
+#define NUM_IO_PROCS 1
+#define NUM_COMP_PROCS 1
     int my_rank; /* Zero-based rank of processor. */
     int ntasks; /* Number of processors involved in current execution. */
     int iosysid[COMPONENT_COUNT]; /* The ID for the parallel I/O system. */
     int num_flavors; /* Number of PIO netCDF flavors in this build. */
     int flavor[NUM_FLAVORS]; /* iotypes for the supported netCDF IO flavors. */
     int ret; /* Return code. */
-    int num_procs[COMPONENT_COUNT + 1] = {1, 1}; /* Num procs for IO and computation. */
+    int num_procs[COMPONENT_COUNT] = {1}; /* Num procs for IO and computation. */
+    int io_proc_list[NUM_IO_PROCS] = {0};
+    int comp_proc_list[NUM_COMP_PROCS] = {1};
+    int *proc_list[COMPONENT_COUNT] = {comp_proc_list};
     MPI_Comm test_comm;
 
     /* Initialize test. */
-    if ((ret = pio_test_init(argc, argv, &my_rank, &ntasks, TARGET_NTASKS,
-			     &test_comm)))
+    if ((ret = pio_test_init2(argc, argv, &my_rank, &ntasks, TARGET_NTASKS, TARGET_NTASKS,
+                              -1, &test_comm)))
         ERR(ERR_INIT);
 
     /* Only do something on TARGET_NTASKS tasks. */
@@ -54,19 +60,22 @@ int main(int argc, char **argv)
         int comp_task = my_rank < NUM_IO_PROCS ? 0 : 1;
 
         /* Check for invalid values. */
-        if (PIOc_Init_Async(test_comm, NUM_IO_PROCS, NULL, COMPONENT_COUNT,
-                            num_procs, NULL, NULL, NULL, NULL) != PIO_EINVAL)
+        if (PIOc_init_async(test_comm, NUM_IO_PROCS, NULL, COMPONENT_COUNT,
+                            num_procs, NULL, NULL, NULL, PIO_REARR_BOX, NULL) != PIO_EINVAL)
             ERR(ERR_WRONG);
-        if (PIOc_Init_Async(test_comm, NUM_IO_PROCS, NULL, -1,
-                            num_procs, NULL, NULL, NULL, iosysid) != PIO_EINVAL)
+        if (PIOc_init_async(test_comm, NUM_IO_PROCS, NULL, COMPONENT_COUNT,
+                            num_procs, NULL, NULL, NULL, TEST_VAL_42, iosysid) != PIO_EINVAL)
             ERR(ERR_WRONG);
-        if (PIOc_Init_Async(test_comm, NUM_IO_PROCS, NULL, COMPONENT_COUNT,
-                            NULL, NULL, NULL, NULL, iosysid) != PIO_EINVAL)
+        if (PIOc_init_async(test_comm, NUM_IO_PROCS, NULL, -1,
+                            num_procs, NULL, NULL, NULL, PIO_REARR_BOX, iosysid) != PIO_EINVAL)
+            ERR(ERR_WRONG);
+        if (PIOc_init_async(test_comm, NUM_IO_PROCS, NULL, COMPONENT_COUNT,
+                            NULL, NULL, NULL, NULL, PIO_REARR_BOX, iosysid) != PIO_EINVAL)
             ERR(ERR_WRONG);
 
         /* Initialize the IO system. */
-        if ((ret = PIOc_Init_Async(test_comm, NUM_IO_PROCS, NULL, COMPONENT_COUNT,
-                                   num_procs, NULL, NULL, NULL, iosysid)))
+        if ((ret = PIOc_init_async(test_comm, NUM_IO_PROCS, io_proc_list, COMPONENT_COUNT,
+                                   num_procs, (int **)proc_list, NULL, NULL, PIO_REARR_BOX, iosysid)))
             ERR(ERR_INIT);
 
         /* All the netCDF calls are only executed on the computation
@@ -89,7 +98,6 @@ int main(int argc, char **argv)
                     sprintf(filename, "%s_%s_%d_%d.nc", TEST_NAME, iotype_name, sample, my_comp_idx);
 
                     /* Create sample file. */
-                    printf("%d %s creating file %s\n", my_rank, TEST_NAME, filename);
                     if ((ret = create_nc_sample(sample, iosysid[my_comp_idx], flavor[flv], filename, my_rank, NULL)))
                         ERR(ret);
 
@@ -100,19 +108,13 @@ int main(int argc, char **argv)
             } /* next netcdf flavor */
 
             /* Finalize the IO system. Only call this from the computation tasks. */
-            printf("%d %s Freeing PIO resources\n", my_rank, TEST_NAME);
             for (int c = 0; c < COMPONENT_COUNT; c++)
-            {
                 if ((ret = PIOc_finalize(iosysid[c])))
                     ERR(ret);
-                printf("%d %s PIOc_finalize completed for iosysid = %d\n", my_rank, TEST_NAME,
-                       iosysid[c]);
-            }
         } /* endif comp_task */
     } /* endif my_rank < TARGET_NTASKS */
 
     /* Finalize test. */
-    printf("%d %s finalizing...\n", my_rank, TEST_NAME);
     if ((ret = pio_test_finalize(&test_comm)))
         return ERR_AWFUL;
 

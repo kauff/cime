@@ -29,6 +29,7 @@
  * compressed.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_def_var
+ * @author Ed Hartnett
  */
 int PIOc_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
                          int deflate_level)
@@ -48,7 +49,7 @@ int PIOc_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
         return pio_err(ios, file, PIO_ENOTNC4, __FILE__, __LINE__);
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -118,6 +119,7 @@ int PIOc_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
  * if NULL.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_inq_var
+ * @author Ed Hartnett
  */
 int PIOc_inq_var_deflate(int ncid, int varid, int *shufflep, int *deflatep,
                          int *deflate_levelp)
@@ -137,7 +139,7 @@ int PIOc_inq_var_deflate(int ncid, int varid, int *shufflep, int *deflatep,
         return pio_err(ios, file, PIO_ENOTNC4, __FILE__, __LINE__);
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -227,6 +229,7 @@ int PIOc_inq_var_deflate(int ncid, int varid, int *shufflep, int *deflatep,
  * @param chunksizep an array of chunksizes. Must have a chunksize for
  * every variable dimension.
  * @return PIO_NOERR for success, otherwise an error code.
+ * @author Ed Hartnett
  */
 int PIOc_def_var_chunking(int ncid, int varid, int storage, const PIO_Offset *chunksizesp)
 {
@@ -251,13 +254,13 @@ int PIOc_def_var_chunking(int ncid, int varid, int storage, const PIO_Offset *ch
     /* Run this on all tasks if async is not in use, but only on
      * non-IO tasks if async is in use. Get the number of
      * dimensions. */
-    if (!ios->async_interface || !ios->ioproc)
+    if (!ios->async || !ios->ioproc)
         if ((ierr = PIOc_inq_varndims(ncid, varid, &ndims)))
             return check_netcdf(file, ierr, __FILE__, __LINE__);
     LOG((2, "PIOc_def_var_chunking first ndims = %d", ndims));
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -348,6 +351,7 @@ int PIOc_def_var_chunking(int ncid, int varid, int storage, const PIO_Offset *ch
  * dimensions.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_inq_var
+ * @author Ed Hartnett
  */
 int PIOc_inq_var_chunking(int ncid, int varid, int *storagep, PIO_Offset *chunksizesp)
 {
@@ -370,7 +374,7 @@ int PIOc_inq_var_chunking(int ncid, int varid, int *storagep, PIO_Offset *chunks
 
     /* Run these on all tasks if async is not in use, but only on
      * non-IO tasks if async is in use. */
-    if (!ios->async_interface || !ios->ioproc)
+    if (!ios->async || !ios->ioproc)
     {
         /* Find the number of dimensions of this variable. */
         if ((ierr = PIOc_inq_varndims(ncid, varid, &ndims)))
@@ -379,7 +383,7 @@ int PIOc_inq_var_chunking(int ncid, int varid, int *storagep, PIO_Offset *chunks
     }
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -396,6 +400,8 @@ int PIOc_inq_var_chunking(int ncid, int varid, int *storagep, PIO_Offset *chunks
                 mpierr = MPI_Bcast(&varid, 1, MPI_INT, ios->compmaster, ios->intercomm);
             if (!mpierr)
                 mpierr = MPI_Bcast(&storage_present, 1, MPI_CHAR, ios->compmaster, ios->intercomm);
+            if (!mpierr)
+                mpierr = MPI_Bcast(&ndims, 1, MPI_INT, ios->compmaster, ios->intercomm);
             if (!mpierr)
                 mpierr = MPI_Bcast(&chunksizes_present, 1, MPI_CHAR, ios->compmaster, ios->intercomm);
             LOG((2, "PIOc_inq_var_chunking ncid = %d varid = %d storage_present = %d chunksizes_present = %d",
@@ -477,6 +483,7 @@ int PIOc_inq_var_chunking(int ncid, int varid, int *storagep, PIO_Offset *chunks
  * every variable dimension.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_def_var
+ * @author Ed Hartnett
  */
 int PIOc_def_var_endian(int ncid, int varid, int endian)
 {
@@ -495,7 +502,7 @@ int PIOc_def_var_endian(int ncid, int varid, int endian)
         return pio_err(ios, file, PIO_ENOTNC4, __FILE__, __LINE__);
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -552,6 +559,7 @@ int PIOc_def_var_endian(int ncid, int varid, int endian)
  * endianness. Ignored if NULL.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_inq_var
+ * @author Ed Hartnett
  */
 int PIOc_inq_var_endian(int ncid, int varid, int *endianp)
 {
@@ -572,7 +580,7 @@ int PIOc_inq_var_endian(int ncid, int varid, int *endianp)
         return pio_err(ios, file, PIO_ENOTNC4, __FILE__, __LINE__);
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -643,6 +651,7 @@ int PIOc_inq_var_endian(int ncid, int varid, int *endianp)
  * @param preemption preemption setting for file cache.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_def_var
+ * @author Ed Hartnett
  */
 int PIOc_set_chunk_cache(int iosysid, int iotype, PIO_Offset size, PIO_Offset nelems,
                          float preemption)
@@ -663,7 +672,7 @@ int PIOc_set_chunk_cache(int iosysid, int iotype, PIO_Offset size, PIO_Offset ne
         return pio_err(ios, NULL, PIO_ENOTNC4, __FILE__, __LINE__);
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -742,6 +751,7 @@ int PIOc_set_chunk_cache(int iosysid, int iotype, PIO_Offset size, PIO_Offset ne
  * @param preemptionp gets the preemption setting for file cache.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_def_var
+ * @author Ed Hartnett
  */
 int PIOc_get_chunk_cache(int iosysid, int iotype, PIO_Offset *sizep, PIO_Offset *nelemsp,
                          float *preemptionp)
@@ -761,7 +771,7 @@ int PIOc_get_chunk_cache(int iosysid, int iotype, PIO_Offset *sizep, PIO_Offset 
         return pio_err(ios, NULL, PIO_ENOTNC4, __FILE__, __LINE__);
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -860,6 +870,7 @@ int PIOc_get_chunk_cache(int iosysid, int iotype, PIO_Offset *sizep, PIO_Offset 
  * every variable dimension.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_def_var
+ * @author Ed Hartnett
  */
 int PIOc_set_var_chunk_cache(int ncid, int varid, PIO_Offset size, PIO_Offset nelems,
                              float preemption)
@@ -879,7 +890,7 @@ int PIOc_set_var_chunk_cache(int ncid, int varid, PIO_Offset size, PIO_Offset ne
         return pio_err(ios, file, PIO_ENOTNC4, __FILE__, __LINE__);
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {
@@ -945,6 +956,7 @@ int PIOc_set_var_chunk_cache(int ncid, int varid, PIO_Offset size, PIO_Offset ne
  * @param preemptionp will get the cache preemption value. Ignored if NULL.
  * @return PIO_NOERR for success, otherwise an error code.
  * @ingroup PIO_inq_var
+ * @author Ed Hartnett
  */
 int PIOc_get_var_chunk_cache(int ncid, int varid, PIO_Offset *sizep, PIO_Offset *nelemsp,
                              float *preemptionp)
@@ -966,7 +978,7 @@ int PIOc_get_var_chunk_cache(int ncid, int varid, PIO_Offset *sizep, PIO_Offset 
         return pio_err(ios, file, PIO_ENOTNC4, __FILE__, __LINE__);
 
     /* If async is in use, and this is not an IO task, bcast the parameters. */
-    if (ios->async_interface)
+    if (ios->async)
     {
         if (!ios->ioproc)
         {

@@ -118,6 +118,8 @@ class TestStatus(object):
 
         if os.path.exists(self._filename):
             self._parse_test_status_file()
+            if not os.access(self._filename, os.W_OK):
+                self._no_io = True
         else:
             expect(test_name is not None, "Must provide test_name if TestStatus file doesn't exist")
 
@@ -130,7 +132,7 @@ class TestStatus(object):
         self.flush()
 
     def __iter__(self):
-        for phase, data in self._phase_statuses.iteritems():
+        for phase, data in self._phase_statuses.items():
             yield phase, data[0]
 
     def get_name(self):
@@ -146,7 +148,7 @@ class TestStatus(object):
         ...     ts.set_status(XML_PHASE, "PASS")
         ...     ts.set_status(SETUP_PHASE, "FAIL")
         ...     ts.set_status(SETUP_PHASE, "PASS")
-        ...     ts.set_status("%s_base_rest" % COMPARE_PHASE, "FAIL")
+        ...     ts.set_status("{}_base_rest".format(COMPARE_PHASE), "FAIL")
         ...     ts.set_status(SHAREDLIB_BUILD_PHASE, "PASS", comments='Time=42')
         >>> ts._phase_statuses
         OrderedDict([('CREATE_NEWCASE', ('PASS', '')), ('XML', ('PASS', '')), ('SETUP', ('PASS', '')), ('SHAREDLIB_BUILD', ('PASS', 'Time=42')), ('COMPARE_base_rest', ('FAIL', '')), ('MODEL_BUILD', ('PEND', ''))])
@@ -157,7 +159,7 @@ class TestStatus(object):
         ...     ts.set_status(SETUP_PHASE, "FAIL")
         ...     ts.set_status(SETUP_PHASE, "PASS")
         ...     ts.set_status(BASELINE_PHASE, "PASS")
-        ...     ts.set_status("%s_base_rest" % COMPARE_PHASE, "FAIL")
+        ...     ts.set_status("{}_base_rest".format(COMPARE_PHASE), "FAIL")
         ...     ts.set_status(SHAREDLIB_BUILD_PHASE, "PASS", comments='Time=42')
         ...     ts.set_status(SETUP_PHASE, "PASS")
         >>> ts._phase_statuses
@@ -170,18 +172,17 @@ class TestStatus(object):
         """
         expect(self._ok_to_modify, "TestStatus not in a modifiable state, use 'with' syntax")
         expect(phase in ALL_PHASES or phase.startswith(COMPARE_PHASE),
-               "Invalid phase '%s'" % phase)
-        expect(status in ALL_PHASE_STATUSES, "Invalid status '%s'" % status)
+               "Invalid phase '{}'".format(phase))
+        expect(status in ALL_PHASE_STATUSES, "Invalid status '{}'".format(status))
 
         if phase in CORE_PHASES and phase != CORE_PHASES[0]:
             previous_core_phase = CORE_PHASES[CORE_PHASES.index(phase)-1]
             #TODO: enable check below
-            #expect(previous_core_phase in self._phase_statuses, "Core phase '%s' was skipped" % previous_core_phase)
+            #expect(previous_core_phase in self._phase_statuses, "Core phase '{}' was skipped".format(previous_core_phase))
 
             if previous_core_phase in self._phase_statuses:
                 expect(self._phase_statuses[previous_core_phase][0] == TEST_PASS_STATUS,
-                       "Cannot move past core phase '%s', it didn't pass: " \
-                           % (previous_core_phase))
+                       "Cannot move past core phase '{}', it didn't pass: ".format(previous_core_phase))
 
         reran_phase = (phase in self._phase_statuses and self._phase_statuses[phase][0] != TEST_PEND_STATUS and phase in CORE_PHASES)
         if reran_phase:
@@ -191,7 +192,7 @@ class TestStatus(object):
                 if subsequent_phase in self._phase_statuses:
                     del self._phase_statuses[subsequent_phase]
                 if subsequent_phase.startswith(COMPARE_PHASE):
-                    for stored_phase in self._phase_statuses.keys():
+                    for stored_phase in list(self._phase_statuses.keys()):
                         if stored_phase.startswith(COMPARE_PHASE):
                             del self._phase_statuses[stored_phase]
 
@@ -207,24 +208,26 @@ class TestStatus(object):
     def get_comment(self, phase):
         return self._phase_statuses[phase][1] if phase in self._phase_statuses else None
 
-    def phase_statuses_dump(self, fd, prefix=''):
+    def phase_statuses_dump(self, prefix=''):
         """
         Args:
-            fd: file open for writing
             prefix: string printed at the start of each line
         """
+        result = ""
         if self._phase_statuses:
-            for phase, data in self._phase_statuses.iteritems():
+            for phase, data in self._phase_statuses.items():
                 status, comments = data
                 if not comments:
-                    fd.write("%s%s %s %s\n" % (prefix, status, self._test_name, phase))
+                    result += "{}{} {} {}\n".format(prefix, status, self._test_name, phase)
                 else:
-                    fd.write("%s%s %s %s %s\n" % (prefix, status, self._test_name, phase, comments))
+                    result += "{}{} {} {} {}\n".format(prefix, status, self._test_name, phase, comments)
+
+        return result
 
     def flush(self):
         if self._phase_statuses and not self._no_io:
             with open(self._filename, "w") as fd:
-                self.phase_statuses_dump(fd)
+                fd.write(self.phase_statuses_dump())
 
     def _parse_test_status(self, file_contents):
         """
@@ -249,18 +252,18 @@ class TestStatus(object):
                     self._test_name = curr_test_name
                 else:
                     expect(self._test_name == curr_test_name,
-                           "inconsistent test name in parse_test_status: '%s' != '%s'" % (self._test_name, curr_test_name))
+                           "inconsistent test name in parse_test_status: '{}' != '{}'".format(self._test_name, curr_test_name))
 
                 expect(status in ALL_PHASE_STATUSES,
-                       "Unexpected status '%s' in parse_test_status for test '%s'" % (status, self._test_name))
+                       "Unexpected status '{}' in parse_test_status for test '{}'".format(status, self._test_name))
                 expect(phase in ALL_PHASES or phase.startswith(COMPARE_PHASE),
-                       "phase '%s' not expected in parse_test_status for test '%s'" % (phase, self._test_name))
+                       "phase '{}' not expected in parse_test_status for test '{}'".format(phase, self._test_name))
                 expect(phase not in self._phase_statuses,
-                       "Should not have seen multiple instances of phase '%s' for test '%s'" % (phase, self._test_name))
+                       "Should not have seen multiple instances of phase '{}' for test '{}'".format(phase, self._test_name))
 
                 self._phase_statuses[phase] = (status, " ".join(tokens[3:]))
             else:
-                logging.warning("In TestStatus file for test '%s', line '%s' not in expected format" % (self._test_name, line))
+                logging.warning("In TestStatus file for test '{}', line '{}' not in expected format".format(self._test_name, line))
 
     def _parse_test_status_file(self):
         with open(self._filename, "r") as fd:
@@ -311,7 +314,7 @@ class TestStatus(object):
         """
         rv = TEST_PASS_STATUS
         run_phase_found = False
-        for phase, data in self._phase_statuses.iteritems():
+        for phase, data in self._phase_statuses.items():
             status = data[0]
             if phase == RUN_PHASE:
                 run_phase_found = True
