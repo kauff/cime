@@ -101,6 +101,7 @@
       <value component="satm"      >$CIMEROOT/src/components/stub_comps/satm</value>
       <value component="xatm"      >$CIMEROOT/src/components/xcpl_comps/xatm</value>
       <value component="cam"      >$SRCROOT/components/cam/</value>
+      <value component="wrf"      >$SRCROOT/components/wrf/</value>
     </values>
     <group>case_comps</group>
     <file>env_case.xml</file>
@@ -125,6 +126,7 @@
     <default_value>unset</default_value>
     <values>
       <value component="pop"      >$SRCROOT/components/pop/</value>
+      <value component="roms"      >$SRCROOT/components/roms/</value>
       <value component="docn"      >$CIMEROOT/src/components/data_comps/docn</value>
       <value component="socn"      >$CIMEROOT/src/components/stub_comps/socn</value>
       <value component="xocn"      >$CIMEROOT/src/components/xcpl_comps/xocn</value>
@@ -231,10 +233,12 @@
       <value component="allactive">$SRCROOT/cime_config/config_compsets.xml</value>
       <value component="drv"      >$COMP_ROOT_DIR_CPL/cime_config/config_compsets.xml</value>
       <value component="cam"      >$COMP_ROOT_DIR_ATM/cime_config/config_compsets.xml</value>
+      <value component="wrf"      >$COMP_ROOT_DIR_ATM/cime_config/config_compsets.xml</value>
       <value component="cism"     >$COMP_ROOT_DIR_GLC/cime_config/config_compsets.xml</value>
       <value component="clm"      >$COMP_ROOT_DIR_LND/cime_config/config_compsets.xml</value>
       <value component="cice"     >$COMP_ROOT_DIR_ICE/cime_config/config_compsets.xml</value>
       <value component="pop"      >$COMP_ROOT_DIR_OCN/cime_config/config_compsets.xml</value>
+      <value component="roms"     >$COMP_ROOT_DIR_OCN/cime_config/config_compsets.xml</value>
     </values>
     <group>case_last</group>
     <file>env_case.xml</file>
@@ -249,10 +253,12 @@
       <value component="allactive">$SRCROOT/cime_config/config_pes.xml</value>
       <value component="drv"      >$COMP_ROOT_DIR_CPL/cime_config/config_pes.xml</value>
       <value component="cam"      >$COMP_ROOT_DIR_ATM/cime_config/config_pes.xml</value>
+      <value component="wrf"      >$COMP_ROOT_DIR_ATM/cime_config/config_pes.xml</value>
       <value component="cism"     >$COMP_ROOT_DIR_GLC/cime_config/config_pes.xml</value>
       <value component="clm"      >$COMP_ROOT_DIR_LND/cime_config/config_pes.xml</value>
       <value component="cice"     >$COMP_ROOT_DIR_ICE/cime_config/config_pes.xml</value>
       <value component="pop"      >$COMP_ROOT_DIR_OCN/cime_config/config_pes.xml</value>
+      <value component="roms"     >$COMP_ROOT_DIR_OCN/cime_config/config_pes.xml</value>
     </values>
     <group>case_last</group>
     <file>env_case.xml</file>
@@ -309,6 +315,7 @@
       <value component="allactive">$SRCROOT/cime_config/testlist_allactive.xml</value>
       <value component="drv"      >$COMP_ROOT_DIR_CPL/cime_config/testdefs/testlist_drv.xml</value>
       <value component="cam"      >$COMP_ROOT_DIR_ATM/cime_config/testdefs/testlist_cam.xml</value>
+      <value component="wrf"      >$COMP_ROOT_DIR_ATM/cime_config/testdefs/testlist_wrf.xml</value>
       <value component="cism"     >$COMP_ROOT_DIR_GLC/cime_config/testdefs/testlist_cism.xml</value>
       <value component="clm"      >$COMP_ROOT_DIR_LND/cime_config/testdefs/testlist_clm.xml</value>
       <value component="cice"     >$COMP_ROOT_DIR_ICE/cime_config/testdefs/testlist_cice.xml</value>
@@ -329,6 +336,7 @@
       <value component="allactive">$SRCROOT/cime_config/testmods_dirs</value>
       <value component="drv"      >$COMP_ROOT_DIR_CPL/cime_config/testdefs/testmods_dirs</value>
       <value component="cam"      >$COMP_ROOT_DIR_ATM/cime_config/testdefs/testmods_dirs</value>
+      <value component="wrf"      >$COMP_ROOT_DIR_ATM/cime_config/testdefs/testmods_dirs</value>
       <value component="cism"     >$COMP_ROOT_DIR_GLC/cime_config/testdefs/testmods_dirs</value>
       <value component="clm"      >$COMP_ROOT_DIR_LND/cime_config/testdefs/testmods_dirs</value>
       <value component="cice"     >$COMP_ROOT_DIR_ICE/cime_config/testdefs/testmods_dirs</value>
@@ -348,12 +356,14 @@
       <value component="allactive">$SRCROOT/cime_config/usermods_dirs</value>
       <value component="drv"      >$COMP_ROOT_DIR_CPL/cime_config/usermods_dirs</value>
       <value component="cam"      >$COMP_ROOT_DIR_ATM/cime_config/usermods_dirs</value>
+      <value component="wrf"      >$COMP_ROOT_DIR_ATM/cime_config/usermods_dirs</value>
       <value component="cism"     >$COMP_ROOT_DIR_GLC/cime_config/usermods_dirs</value>
       <value component="clm"      >$COMP_ROOT_DIR_LND/cime_config/usermods_dirs</value>
       <value component="cice"     >$COMP_ROOT_DIR_ICE/cime_config/usermods_dirs</value>
       <value component="rtm"      >$COMP_ROOT_DIR_ROF/cime_config/usermods_dirs</value>
       <value component="mosart"   >$COMP_ROOT_DIR_ROF/cime_config/usermods_dirs</value>
       <value component="pop"      >$COMP_ROOT_DIR_OCN/cime_config/usermods_dirs</value>
+      <value component="roms"     >$COMP_ROOT_DIR_OCN/cime_config/usermods_dirs</value>
     </values>
     <group>case_last</group>
     <file>env_case.xml</file>
