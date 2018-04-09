@@ -1434,21 +1434,21 @@
 
     <domain name="gom3">
       <nx>655</nx>  <ny>489</ny>
-      <file grid="atm|lnd">/glade/p/work/katec/tamu/cesm_input_data/domain.gom3.atmlnd.09112017.nc</file>
-      <file grid="ocnice">/glade/p/work/katec/tamu/cesm_input_data/domain.gom3.ocnice.10112017.nc</file>
+      <file grid="atm|lnd">$DIN_LOC_ROOT/share/domains/domain.gom3.atmlnd.09112017.nc</file>
+      <file grid="ocnice">$DIN_LOC_ROOT/share/domains/domain.gom3.ocnice.10112017.nc</file>
       <desc>3km Gulf of Mexico for ROMS with data atmosphere</desc>
     </domain>
 
     <domain name="gom3x">
       <nx>856</nx>  <ny>811</ny>
-      <file grid="atm|lnd">/glade/p/work/katec/tamu/cesm_input_data/domain.datm.txgloExt.nc</file>
-      <file grid="ocnice">/glade/p/work/katec/tamu/cesm_input_data/domain.ocn.gom3x.180129.nc</file>
+      <file grid="atm|lnd">$DIN_LOC_ROOT/share/domains/domain.datm.txgloExt.nc</file>
+      <file grid="ocnice">$DIN_LOC_ROOT/share/domains/domain.ocn.gom3x.180129.nc</file>
       <desc>3km Gulf of Mexico for XROMS</desc>
     </domain>
 
     <domain name="txlw9k">
       <nx>285</nx>  <ny>270</ny>
-      <file grid="atm|lnd">/glade/p/work/katec/tamu/cesm_input_data/domain.lnd.txlw9k_gom3x.180129.nc</file>
+      <file grid="atm|lnd">$DIN_LOC_ROOT/share/domains/domain.lnd.txlw9k_gom3x.180129.nc</file>
       <desc>9km Gulf of Mexico for Wrf, to pair with gom3x in xRoms</desc>
     </domain>
 
@@ -1805,11 +1805,11 @@
 
     <!-- Regional WRF & ROMS mapping files -->
     <gridmap atm_grid="txlw9k" ocn_grid="gom3x">
-      <map name="ATM2OCN_FMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_a2o_aave.nc</map>
-      <map name="ATM2OCN_SMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_a2o_aave.nc</map>
-      <map name="ATM2OCN_VMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_a2o_aave.nc</map>
-      <map name="OCN2ATM_FMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_o2a_aave.nc</map>
-      <map name="OCN2ATM_SMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_o2a_aave.nc</map>
+      <map name="ATM2OCN_FMAPNAME">atm/wrf/tx9k_g3x/map_a2o_aave.nc</map>
+      <map name="ATM2OCN_SMAPNAME">atm/wrf/tx9k_g3x/map_a2o_aave.nc</map>
+      <map name="ATM2OCN_VMAPNAME">atm/wrf/tx9k_g3x/map_a2o_aave.nc</map>
+      <map name="OCN2ATM_FMAPNAME">atm/wrf/tx9k_g3x/map_o2a_aave.nc</map>
+      <map name="OCN2ATM_SMAPNAME">atm/wrf/tx9k_g3x/map_o2a_aave.nc</map>
     </gridmap>
 
     <!--  QL, 150525, wav to ocn, atm, ice mapping files  -->
