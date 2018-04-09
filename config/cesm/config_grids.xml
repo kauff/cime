@@ -958,6 +958,37 @@
       <grid name="wav">ww3a</grid>
     </model_grid>
 
+    <!-- WRF model grids -->
+ 
+    <model_grid alias="wus12_wus12">
+       <grid name="atm">wus12</grid>
+       <grid name="lnd">wus12</grid>
+       <grid name="ocnice">wus12</grid>
+    </model_grid>
+
+    <!-- ROMS model grids -->
+
+    <model_grid alias="3x3_gulfmexico">
+      <grid name="atm">gom3</grid>
+      <grid name="lnd">gom3</grid>
+      <grid name="ocnice">gom3</grid>
+    </model_grid>
+
+    <model_grid alias="3x3_gulfmexico_ext">
+      <grid name="atm">gom3x</grid>
+      <grid name="lnd">gom3x</grid>
+      <grid name="ocnice">gom3x</grid>
+    </model_grid>
+
+    <!-- Coupled WRF-ROMS grids -->
+
+    <model_grid alias="tx9k_g3x">
+      <grid name="atm">txlw9k</grid>
+      <grid name="lnd">txlw9k</grid>
+      <grid name="ocnice">gom3x</grid>
+    </model_grid>
+
+
   </grids>
 
   <!-- ======================================================== -->
@@ -1393,6 +1424,34 @@
       <support>Experimental, under development</support>
     </domain>
 
+    <!-- WRF & ROMS regional domains -->
+    <domain name="wus12">
+      <nx>144</nx>  <ny>96</ny>
+       <file grid="atm|lnd">domain.lnd.wus12_wus12.20101108.nc</file>
+       <file grid="ocnice">domain.ocn.wus12.20100518.nc</file>
+      <desc>12km Continguous US for WRF atmosphere grid:</desc>
+    </domain>
+
+    <domain name="gom3">
+      <nx>655</nx>  <ny>489</ny>
+      <file grid="atm|lnd">/glade/p/work/katec/tamu/cesm_input_data/domain.gom3.atmlnd.09112017.nc</file>
+      <file grid="ocnice">/glade/p/work/katec/tamu/cesm_input_data/domain.gom3.ocnice.10112017.nc</file>
+      <desc>3km Gulf of Mexico for ROMS with data atmosphere</desc>
+    </domain>
+
+    <domain name="gom3x">
+      <nx>856</nx>  <ny>811</ny>
+      <file grid="atm|lnd">/glade/p/work/katec/tamu/cesm_input_data/domain.datm.txgloExt.nc</file>
+      <file grid="ocnice">/glade/p/work/katec/tamu/cesm_input_data/domain.ocn.gom3x.180129.nc</file>
+      <desc>3km Gulf of Mexico for XROMS</desc>
+    </domain>
+
+    <domain name="txlw9k">
+      <nx>285</nx>  <ny>270</ny>
+      <file grid="atm|lnd">/glade/p/work/katec/tamu/cesm_input_data/domain.lnd.txlw9k_gom3x.180129.nc</file>
+      <desc>9km Gulf of Mexico for Wrf, to pair with gom3x in xRoms</desc>
+    </domain>
+
     <!-- GLC domain -->
 
     <domain name="gland20">
@@ -1742,6 +1801,15 @@
       <map name="ATM2LND_SMAPNAME">cpl/gridmaps/T341/map_T341_to_fv0.23x0.31_aave_110413.nc</map>
       <map name="LND2ATM_FMAPNAME">cpl/gridmaps/fv0.23x0.31/map_fv0.23x0.31_to_T341_aave_110413.nc</map>
       <map name="LND2ATM_SMAPNAME">cpl/gridmaps/fv0.23x0.31/map_fv0.23x0.31_to_T341_aave_110413.nc</map>
+    </gridmap>
+
+    <!-- Regional WRF & ROMS mapping files -->
+    <gridmap atm_grid="txlw9k" ocn_grid="gom3x">
+      <map name="ATM2OCN_FMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_a2o_aave.nc</map>
+      <map name="ATM2OCN_SMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_a2o_aave.nc</map>
+      <map name="ATM2OCN_VMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_a2o_aave.nc</map>
+      <map name="OCN2ATM_FMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_o2a_aave.nc</map>
+      <map name="OCN2ATM_SMAPNAME">/glade/p/work/katec/tamu/cesm_input_data/map_o2a_aave.nc</map>
     </gridmap>
 
     <!--  QL, 150525, wav to ocn, atm, ice mapping files  -->
