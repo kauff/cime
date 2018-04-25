@@ -2041,6 +2041,212 @@
 
   </machine>
 
+  <machine MACH="ada">
+    <DESC>TAMU IBM NextScale Cluster, os is Linux, 20 pes/node, batch system is LSF</DESC>
+    <NODENAME_REGEX>.*.ada.tamu.edu</NODENAME_REGEX>
+    <OS>LINUX</OS>
+    <COMPILERS>intel,gnu,pgi</COMPILERS>
+    <MPILIBS compiler="intel" >impi,mpt,openmpi</MPILIBS>
+    <MPILIBS compiler="pgi" >mpt</MPILIBS>
+    <MPILIBS compiler="gnu" >openmpi</MPILIBS>
+    <CIME_OUTPUT_ROOT>/scratch/user/$USER/CRESM</CIME_OUTPUT_ROOT>
+    <DIN_LOC_ROOT>$CIME_OUTPUT_ROOT/inputdata</DIN_LOC_ROOT>
+    <DIN_LOC_ROOT_CLMFORC>>$CIME_OUTPUT_ROOT/inputdata/lmwg</DIN_LOC_ROOT_CLMFORC>
+    <DOUT_S_ROOT>$CIME_OUTPUT_ROOT/archive/$CASE</DOUT_S_ROOT>
+    <BASELINE_ROOT>>$CIME_OUTPUT_ROOT/inputdata/cesm_baselines</BASELINE_ROOT>
+    <CCSM_CPRNC>>$CIME_OUTPUT_ROOT/my_cresm_sandbox/cime/tools/cprnc</CCSM_CPRNC>
+    <GMAKE_J>4</GMAKE_J>
+    <BATCH_SYSTEM>lsf</BATCH_SYSTEM>
+    <SUPPORTED_BY>ada</SUPPORTED_BY>
+    <!-- have not seen any performance benefit in smt -->
+    <MAX_TASKS_PER_NODE>20</MAX_TASKS_PER_NODE>
+    <MAX_MPITASKS_PER_NODE>20</MAX_MPITASKS_PER_NODE>
+    <PROJECT_REQUIRED>FALSE</PROJECT_REQUIRED>
+    <mpirun mpilib="default">
+      <executable>mpiexec.hydra</executable>
+      <arguments>
+        <arg name="anum_tasks"> -np $TOTALPES</arg>
+      </arguments>
+    </mpirun>
+    <mpirun mpilib="openmpi">
+      <executable>mpirun</executable>
+      <arguments>
+        <arg name="anum_tasks"> -np $TOTALPES</arg>
+      </arguments>
+    </mpirun>
+    <module_system type="module">
+      <init_path lang="perl">/software/lmod/lmod/init/perl</init_path>
+      <init_path lang="python">/software/lmod/lmod/init/env_modules_python.py</init_path>
+      <init_path lang="csh">/software/lmod/lmod/init/csh</init_path>
+      <init_path lang="sh">/software/lmod/lmod/init/sh</init_path>
+      <cmd_path lang="perl">/software/lmod/lmod/libexec/lmod perl</cmd_path>
+      <cmd_path lang="python">/software/lmod/lmod/libexec/lmod python</cmd_path>
+      <cmd_path lang="sh">module</cmd_path>
+      <cmd_path lang="csh">module</cmd_path>
+      <modules>
+        <command name="purge"/>
+        <command name="load">python/2.7.10-intel-2015B</command>
+      </modules>
+      <modules compiler="intel">
+        <command name="load">wrf-deps/intel-2015B</command>
+        <command name="load">pnetcdf/1.6.1-intel-2015B</command>
+      </modules>
+    </module_system>
+    <environment_variables>
+      <env name="OMP_STACKSIZE">256M</env>
+      <env name="MPI_TYPE_DEPTH">16</env>
+      <env name="I_MPI_HYDRA_BOOTSTRAP">lsf</env>
+      <env name="I_MPI_HYDRA_BRANCH_COUNT">-1</env>
+      <env name="I_MPI_LSF_USE_COLLECTIVE_LAUNCH">1</env>
+    </environment_variables>
+     <environment_variables>
+      <env name="NETCDF_PATH">/software/tamusc/WRF/netcdf/4.3.3.1-intel-2015B</env>
+      <env name="NETCDF_C_PATH">/software/tamusc/WRF/netcdf/4.3.3.1-intel-2015B</env>
+      <env name="NETCDF_FORTRAN_PATH">/software/tamusc/WRF/netcdf-fortran/4.4.2-intel-2015B</env>
+      <env name="PNETCDF_PATH">/software/tamusc/pnetcdf/1.6.1-intel-2015B</env>
+    </environment_variables>
+    <resource_limits>
+      <resource name="RLIMIT_CORE">-1</resource>
+      <resource name="RLIMIT_DATA">-1</resource>
+      <resource name="RLIMIT_STACK">-1</resource>
+    </resource_limits>
+  </machine>  
+
+  <machine MACH="terra">
+    <DESC>TAMU Terra Intel x86-64 Cluster, os is Linux, 20 pes/node, batch system is SLURM</DESC>
+    <NODENAME_REGEX>.*.terra.tamu.edu</NODENAME_REGEX>
+    <OS>LINUX</OS>
+    <COMPILERS>intel,gnu,pgi</COMPILERS>
+    <MPILIBS compiler="intel" >impi,mpt,openmpi</MPILIBS>
+    <MPILIBS compiler="pgi" >mpt</MPILIBS>
+    <MPILIBS compiler="gnu" >openmpi</MPILIBS>
+    <CIME_OUTPUT_ROOT>/scratch/user/$USER/CRESM</CIME_OUTPUT_ROOT>
+    <DIN_LOC_ROOT>$CIME_OUTPUT_ROOT/inputdata</DIN_LOC_ROOT>
+    <DIN_LOC_ROOT_CLMFORC>>$CIME_OUTPUT_ROOT/inputdata/lmwg</DIN_LOC_ROOT_CLMFORC>
+    <DOUT_S_ROOT>$CIME_OUTPUT_ROOT/archive/$CASE</DOUT_S_ROOT>
+    <BASELINE_ROOT>>$CIME_OUTPUT_ROOT/inputdata/cesm_baselines</BASELINE_ROOT>
+    <CCSM_CPRNC>>$CIME_OUTPUT_ROOT/my_cresm_sandbox/cime/tools/cprnc</CCSM_CPRNC>
+    <GMAKE_J>4</GMAKE_J>
+    <BATCH_SYSTEM>slurm</BATCH_SYSTEM>
+    <SUPPORTED_BY>terra</SUPPORTED_BY>
+    <!-- have not seen any performance benefit in smt -->
+    <MAX_TASKS_PER_NODE>20</MAX_TASKS_PER_NODE>
+    <MAX_MPITASKS_PER_NODE>20</MAX_MPITASKS_PER_NODE>
+    <PROJECT_REQUIRED>FALSE</PROJECT_REQUIRED>
+    <mpirun mpilib="default">
+      <executable>mpiexec.hydra</executable>
+      <arguments>
+        <arg name="anum_tasks"> -np $TOTALPES</arg>
+      </arguments>
+    </mpirun>
+    <mpirun mpilib="openmpi">
+      <executable>mpirun</executable>
+      <arguments>
+        <arg name="anum_tasks"> -np $TOTALPES</arg>
+      </arguments>
+    </mpirun>
+    <module_system type="module">
+      <init_path lang="perl">/general/sw/lmod/lmod/init/perl</init_path>
+      <init_path lang="python">/general/sw/lmod/lmod/init/env_modules_python.py</init_path>
+      <init_path lang="csh">/general/sw/lmod/lmod/init/csh</init_path>
+      <init_path lang="sh">/general/sw/lmod/lmod/init/sh</init_path>
+      <cmd_path lang="sh">module</cmd_path>
+      <cmd_path lang="csh">module</cmd_path>
+    </module_system>
+    <environment_variables>
+      <env name="OMP_STACKSIZE">256M</env>
+      <env name="MPI_TYPE_DEPTH">16</env>
+      <env name="I_MPI_HYDRA_BOOTSTRAP">slurm</env>
+      <env name="I_MPI_HYDRA_BRANCH_COUNT">-1</env>
+      <env name="I_MPI_SLURM_EXT">on</env>
+      <env name="I_MPI_HYDRA_PMI_CONNECT">alltoall</env>
+      </environment_variables>
+    <environment_variables>
+      <env name="NETCDF_C_PATH">/sw/eb/sw/netCDF/4.4.1.1-iimpi-2017A</env>
+      <env name="NETCDF_FORTRAN_PATH">/sw/eb/sw/netCDF-Fortran/4.4.4-iimpi-2017A</env>
+      <env name="PNETCDF_PATH">/sw/eb/sw/PnetCDF/1.8.1-intel-2017A</env>
+    </environment_variables>
+    <resource_limits>
+      <resource name="RLIMIT_CORE">-1</resource>
+      <resource name="RLIMIT_DATA">-1</resource>
+      <resource name="RLIMIT_STACK">-1</resource>
+    </resource_limits>
+  </machine>
+
+  <machine MACH="stampede2">
+    <DESC>TACC Intel Skylake, os is Linux, 48 pes/node, batch system is SLURM</DESC>
+    <NODENAME_REGEX>.*.stampede2.tacc.utexas.edu</NODENAME_REGEX>
+    <OS>LINUX</OS>
+    <COMPILERS>intel</COMPILERS>
+    <MPILIBS>impi,mvapich2</MPILIBS>
+    <!--<CIME_OUTPUT_ROOT>ENV{SCRATCH}</CIME_OUTPUT_ROOT>-->
+    <CIME_OUTPUT_ROOT>$ENV{WORK}/NCAR_CRESM</CIME_OUTPUT_ROOT>
+    <DIN_LOC_ROOT>$CIME_OUTPUT_ROOT/inputdata</DIN_LOC_ROOT>
+    <DIN_LOC_ROOT_CLMFORC>$CIME_OUTPUT_ROOT/inputdata/lmwg</DIN_LOC_ROOT_CLMFORC>
+    <DOUT_S_ROOT>$CIME_OUTPUT_ROOT/archive/$CASE</DOUT_S_ROOT>
+    <BASELINE_ROOT>$CIME_OUTPUT_ROOT/inputdata/cesm_baselines</BASELINE_ROOT>
+    <CCSM_CPRNC>$ENV{WORK}/CRESM_NCAR/my_cresm_sandbox/cime/tools/cprnc</CCSM_CPRNC>
+    <GMAKE_J>4</GMAKE_J>
+    <BATCH_SYSTEM>slurm</BATCH_SYSTEM>
+    <SUPPORTED_BY>tacc</SUPPORTED_BY>
+    <MAX_TASKS_PER_NODE>48</MAX_TASKS_PER_NODE>
+    <MAX_MPITASKS_PER_NODE>48</MAX_MPITASKS_PER_NODE>
+    <PROJECT_REQUIRED>FALSE</PROJECT_REQUIRED>
+    <mpirun mpilib="impi">
+      <executable>ibrun</executable>
+    </mpirun>
+    <mpirun mpilib="mvapich2">
+      <executable>ibrun</executable>
+    </mpirun>
+    <module_system type="module">
+      <init_path lang="perl">/opt/apps/lmod/lmod/init/perl</init_path>
+      <init_path lang="python">/opt/apps/lmod/lmod/init/env_modules_python.py</init_path>
+      <init_path lang="sh">/opt/apps/lmod/lmod/init/sh</init_path>
+      <init_path lang="csh">/opt/apps/lmod/lmod/init/csh</init_path>
+      <cmd_path lang="perl">/opt/apps/lmod/lmod/libexec/lmod perl</cmd_path>
+      <cmd_path lang="python">/opt/apps/lmod/lmod/libexec/lmod python</cmd_path>
+      <cmd_path lang="sh">module</cmd_path>
+      <cmd_path lang="csh">module</cmd_path>
+      <modules>
+        <!--<command name="purge"></command>-->
+        <command name="load">TACC</command>
+        <command name="load">intel/17.0.4</command>
+        <command name="load">python/2.7.13</command>
+      </modules>
+      <modules mpilib="mvapich2">
+        <command name="load">mvapich2</command>
+        <command name="load">pnetcdf/1.6.1</command>
+        <command name="load">parallel-netcdf/4.3.3.1</command>
+      </modules>
+      <modules mpilib="impi">
+        <command name="rm">mvapich2</command>
+        <command name="load">impi/17.0.3</command>
+        <command name="load">pnetcdf/1.8.1</command>
+        <command name="load">parallel-netcdf/4.3.3.1</command>
+      </modules>
+      <modules mpilib="mpi-serial">
+        <command name="load">netcdf/4.3.3.1</command>
+      </modules>
+    </module_system>
+    <environment_variables>
+      <env name="OMP_STACKSIZE">256M</env>
+      <env name="MPI_TYPE_DEPTH">16</env>
+      <env name="I_MPI_HYDRA_BOOTSTRAP">slurm</env>
+      <env name="I_MPI_HYDRA_BRANCH_COUNT">-1</env>
+      <env name="I_MPI_SLURM_EXT">on</env>
+      <env name="I_MPI_HYDRA_PMI_CONNECT">alltoall</env>
+    </environment_variables>
+    <environment_variables>
+      <env name="NETCDF_PATH">$ENV{TACC_NETCDF_DIR}</env>
+      <env name="PNETCDF_PATH">$ENV{TACC_PNETCDF_DIR}</env>
+    </environment_variables>
+    <resource_limits>
+      <resource name="RLIMIT_CORE">-1</resource>
+      <resource name="RLIMIT_DATA">-1</resource>
+      <resource name="RLIMIT_STACK">-1</resource>
+    </resource_limits>
+  </machine>
+
 <default_run_suffix>
   <default_run_exe>${EXEROOT}/cesm.exe </default_run_exe>
   <default_run_misc_suffix> >> cesm.log.$LID 2>&amp;1 </default_run_misc_suffix>
