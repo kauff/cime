@@ -1120,4 +1120,84 @@ using a fortran linker.
   </CPPDEFS>
 </compiler>
 
+<compiler MACH="ada" COMPILER="intel">
+  <CPPDEFS>
+    <append> -DHAVE_NANOTIME -DNO_R16 </append>
+  </CPPDEFS>
+  <CFLAGS>
+    <append></append>
+  </CFLAGS>
+  <FFLAGS>
+    <append></append>
+  </FFLAGS>
+  <MPIFC>mpiifort</MPIFC>
+  <MPICC>mpiicc</MPICC>
+  <MPICXX>mpiicpc</MPICXX>
+  <SFC>ifort</SFC>
+  <SCC>icc</SCC>
+  <SCXX>icpc</SCXX>
+  <NETCDF_PATH>/software/tamusc/WRF/netcdf/4.3.3.1-intel-2015B</NETCDF_PATH>
+  <NETCDF_C_PATH>/software/tamusc/WRF/netcdf/4.3.3.1-intel-2015B</NETCDF_C_PATH>
+  <NETCDF_FORTRAN_PATH>/software/tamusc/WRF/netcdf-fortran/4.4.2-intel-2015B</NETCDF_FORTRAN_PATH>
+  <PNETCDF_PATH>/software/tamusc/pnetcdf/1.6.1-intel-2015B</PNETCDF_PATH>
+  <SLIBS>
+    <append>-L${NETCDF_C_PATH}/lib -lnetcdf</append>
+    <append>-L${NETCDF_FORTRAN_PATH}/lib -lnetcdff</append>
+    <append>-L${PNETCDF_PATH}/lib -lpnetcdf</append>
+  </SLIBS>
+  <PIO_FILESYSTEM_HINTS>gpfs</PIO_FILESYSTEM_HINTS>
+  <!-- Bug in the intel/17.0.1 compiler requires this, remove this line when compiler is updated -->
+  <HAS_F2008_CONTIGUOUS>FALSE</HAS_F2008_CONTIGUOUS>
+</compiler>
+
+<compiler MACH="terra" COMPILER="intel">
+  <CPPDEFS>
+    <append> -DHAVE_NANOTIME -DNO_R16 </append>
+  </CPPDEFS>
+  <CFLAGS>
+    <append></append>
+  </CFLAGS>
+  <FFLAGS>
+    <append></append>
+  </FFLAGS>
+  <MPIFC>mpiifort</MPIFC>
+  <MPICC>mpiicc</MPICC>
+  <MPICXX>mpiicpc</MPICXX>
+  <SFC>ifort</SFC>
+  <SCC>icc</SCC>
+  <SCXX>icpc</SCXX>
+  <NETCDF_C_PATH>/sw/eb/sw/netCDF/4.4.1.1-iimpi-2017A</NETCDF_C_PATH>
+  <NETCDF_FORTRAN_PATH>/sw/eb/sw/netCDF-Fortran/4.4.4-iimpi-2017A</NETCDF_FORTRAN_PATH>
+  <PNETCDF_PATH>/sw/eb/sw/PnetCDF/1.8.1-intel-2017A</PNETCDF_PATH>
+  <SLIBS>
+    <append>-L${NETCDF_C_PATH}/lib64 -lnetcdf</append>
+    <append>-L${NETCDF_FORTRAN_PATH}/lib -lnetcdff</append>
+    <append>-L${PNETCDF_PATH}/lib -lpnetcdf</append>
+  </SLIBS>
+  <PIO_FILESYSTEM_HINTS>gpfs</PIO_FILESYSTEM_HINTS>
+  <!-- Bug in the intel/17.0.1 compiler requires this, remove this line when compiler is updated -->
+  <HAS_F2008_CONTIGUOUS>FALSE</HAS_F2008_CONTIGUOUS>
+</compiler>
+
+<compiler MACH="stampede2" COMPILER="intel">
+  <CPPDEFS>
+    <append> -DHAVE_NANOTIME -DNO_R16 </append>
+  </CPPDEFS>
+  <MPIFC>mpiifort</MPIFC>
+  <MPICC>mpiicc</MPICC>
+  <MPICXX>mpiicpc</MPICXX>
+  <SFC>ifort</SFC>
+  <SCC>icc</SCC>
+  <SCXX>icpc</SCXX>
+  <NETCDF_PATH>$ENV{TACC_NETCDF_DIR}</NETCDF_PATH>
+  <PNETCDF_PATH>$ENV{TACC_PNETCDF_DIR}</PNETCDF_PATH>
+  <SLIBS>
+    <append>-L$ENV{TACC_NETCDF_DIR}/lib -lnetcdf -lnetcdff</append>
+    <append>-L$ENV{TACC_PNETCDF_DIR}/lib -lpnetcdf</append>
+  </SLIBS>
+  <PIO_FILESYSTEM_HINTS>gpfs</PIO_FILESYSTEM_HINTS>
+  <!-- Bug in the intel/17.0.1 compiler requires this, remove this line when compiler is updated -->
+  <HAS_F2008_CONTIGUOUS>FALSE</HAS_F2008_CONTIGUOUS>
+</compiler>
+
 </config_compilers>
