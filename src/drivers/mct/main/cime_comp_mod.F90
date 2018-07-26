@@ -1417,6 +1417,7 @@ contains
        if (atm_prognostic) ice_c2_atm = .true.
        if (ocn_prognostic) ice_c2_ocn = .true.
        if (wav_prognostic) ice_c2_wav = .true.
+       if (glcocn_present .and. ice_prognostic) glc_c2_ice = .true.  ! BK ice now needs glc fraction
     endif
     if (rof_present) then
        if (lnd_prognostic   ) rof_c2_lnd = .true.
@@ -1807,7 +1808,7 @@ contains
              if (efi == 1) write(logunit,F00) 'Setting fractions'
           endif
 
-          call seq_frac_set(infodata, ice(eii), &
+          call seq_frac_set(infodata, ice(eii), glc(eii), &        ! BK added glc to API
                fractions_ax(efi), fractions_ix(efi), fractions_ox(efi))
 
        enddo
@@ -3114,7 +3115,7 @@ contains
           do efi = 1,num_inst_frc
              eii = mod((efi-1),num_inst_ice) + 1
 
-             call seq_frac_set(infodata, ice(eii), &
+             call seq_frac_set(infodata, ice(eii), glc(eii), &        ! BK added glc to API
                   fractions_ax(efi), fractions_ix(efi), fractions_ox(efi))
           enddo
           call t_drvstopf  ('CPL:fracset_fracset')
