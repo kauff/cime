@@ -41,6 +41,7 @@ module prep_ice_mod
 
   public :: prep_ice_get_mapper_SFo2i
   public :: prep_ice_get_mapper_Rg2i
+  public :: prep_ice_get_mapper_Sg2i
 
   !--------------------------------------------------------------------------
   ! Private interfaces
@@ -55,7 +56,9 @@ module prep_ice_mod
   ! mappers
   type(seq_map), pointer :: mapper_SFo2i
   type(seq_map), pointer :: mapper_Rg2i
+  type(seq_map), pointer :: mapper_Sg2i
   type(seq_map), pointer :: mapper_Rr2i
+  type(seq_map), pointer :: mapper_Sr2i
 
   ! attribute vectors
   type(mct_aVect), pointer :: a2x_ix(:) ! Atm export, ice grid, cpl pes - allocated in driver
@@ -111,6 +114,7 @@ contains
 
     allocate(mapper_SFo2i)
     allocate(mapper_Rg2i)
+    allocate(mapper_Sg2i)
     allocate(mapper_Rr2i)
 
     if (ice_present) then
@@ -163,6 +167,15 @@ contains
           call seq_map_init_rcfile(mapper_Rg2i, glc(1), ice(1), &
                'seq_maps.rc','glc2ice_rmapname:','glc2ice_rmaptype:',samegrid_ig, &
                'mapper_Rg2i initialization', esmf_map_flag)
+
+          ! BK new glc -> ice map, unsmoothed, for glc frac
+          if (iamroot_CPLID) then
+             write(logunit,*) ' '
+             write(logunit,F00) 'Initializing mapper_Sg2i'  ! BK new glc -> ice map, unsmoothed, for glc frac
+          end if
+          call seq_map_init_rcfile(mapper_Sg2i, glc(1), ice(1), &
+               'seq_maps.rc','glc2ice_smapname:','glc2ice_smaptype:',samegrid_ig, &
+               'mapper_Sg2i initialization', esmf_map_flag)
        endif
 
        if (rof_c2_ice) then
@@ -264,6 +277,8 @@ contains
     integer, save :: index_a2x_Faxa_snowl_HDO
     integer, save :: index_x2i_Faxa_rain_HDO
     integer, save :: index_x2i_Faxa_snow_HDO
+    integer, save :: index_x2i_Sg_ice_covered  ! BK
+    integer, save :: index_g2x_Sg_ice_covered  ! BK
     logical, save :: first_time = .true.
     logical       :: iamroot
     character(CL),allocatable :: mrgstr(:)   ! temporary string
@@ -312,6 +327,11 @@ contains
        index_a2x_Faxa_rainl_HDO = mct_aVect_indexRA(a2x_i,'Faxa_rainl_HDO', perrWith='quiet')
        index_x2i_Faxa_rain_HDO  = mct_aVect_indexRA(x2i_i,'Faxa_rain_HDO',  perrWith='quiet' )
        index_x2i_Faxa_snow_HDO  = mct_aVect_indexRA(x2i_i,'Faxa_snow_HDO',  perrWith='quiet' )
+
+       index_g2x_Sg_ice_covered = mct_aVect_indexRA(g2x_i,'Sg_ice_covered', perrWith='quiet' )
+       write(logunit,*) subname // "<DEBUG> index_g2x_Sg_ice_covered = ",index_g2x_Sg_ice_covered
+       index_x2i_Sg_ice_covered = mct_aVect_indexRA(x2i_i,'Sg_ice_covered', perrWith='quiet' )
+       write(logunit,*) subname // "<DEBUG> index_x2i_Sg_ice_covered = ",index_x2i_Sg_ice_covered
 
        do i = 1,niflds
           field = mct_aVect_getRList2c(i, x2i_i)
@@ -383,6 +403,8 @@ contains
     ! Scale total precip and runoff by flux_epbalfact
 
     do i = 1,lsize
+       x2i_i%rAttr(index_x2i_Sg_ice_covered,i) = g2x_i%rAttr(index_g2x_Sg_ice_covered,i)  ! BK
+
        x2i_i%rAttr(index_x2i_Faxa_rain,i) = a2x_i%rAttr(index_a2x_Faxa_rainc,i) + &
             a2x_i%rAttr(index_a2x_Faxa_rainl,i)
        x2i_i%rAttr(index_x2i_Faxa_snow,i) = a2x_i%rAttr(index_a2x_Faxa_snowc,i) + &
@@ -535,6 +557,7 @@ contains
     do egi = 1,num_inst_glc
        g2x_gx => component_get_c2x_cx(glc(egi))
        call seq_map_map(mapper_Rg2i, g2x_gx, g2x_ix(egi), norm=.true.)
+       call seq_map_map(mapper_Sg2i, g2x_gx, g2x_ix(egi), fldlist="Sg_ice_covered",norm=.true.) ! where ice shelf exists
     enddo
     call t_drvstopf  (trim(timer))
 
@@ -571,5 +594,10 @@ contains
     type(seq_map), pointer :: prep_ice_get_mapper_Rg2i
     prep_ice_get_mapper_Rg2i => mapper_Rg2i
   end function prep_ice_get_mapper_Rg2i
+
+  function prep_ice_get_mapper_Sg2i()
+    type(seq_map), pointer :: prep_ice_get_mapper_Sg2i
+    prep_ice_get_mapper_Sg2i => mapper_Sg2i
+  end function prep_ice_get_mapper_Sg2i
 
 end module prep_ice_mod

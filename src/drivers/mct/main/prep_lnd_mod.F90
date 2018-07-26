@@ -113,7 +113,7 @@ contains
     character(CL)            :: rof_gnam      ! rof grid
     character(CL)            :: glc_gnam      ! glc grid
     type(mct_avect), pointer :: l2x_lx
-    character(*), parameter  :: subname = '(prep_lnd_init)'
+    character(*), parameter  :: subname = '(prep_lnd_init) '
     character(*), parameter  :: F00 = "('"//subname//" : ', 4A )"
     !---------------------------------------------------------------
 
@@ -154,6 +154,7 @@ contains
           call mct_aVect_init(g2x_lx(egi), rList=seq_flds_x2l_fields_from_glc, lsize=lsize_l)
           call mct_aVect_zero(g2x_lx(egi))
        end do
+       call shr_sys_flush(logunit)
 
        samegrid_al = .true.
        samegrid_lr = .true.
@@ -188,6 +189,7 @@ contains
           call seq_map_init_rcfile(mapper_Fa2l, atm(1), lnd(1), &
                'seq_maps.rc','atm2lnd_fmapname:','atm2lnd_fmaptype:',samegrid_al, &
                'mapper_Fa2l initialization',esmf_map_flag)
+       else
        endif
        call shr_sys_flush(logunit)
 
@@ -234,6 +236,10 @@ contains
     call shr_string_listIntersect(seq_flds_g2x_fields_to_lnd, &
          seq_flds_x2l_fields_from_glc, &
          glc2lnd_non_ec_fields)
+
+!   glc2lnd_non_ec_fields = trim(glc2lnd_non_ec_fields) // ":Sg_ice_covered " ! BK: also want this, but now added elsewhere
+
+    write(logunit,'(a)') subName // 'set glc2lnd_non_ec_fields = ' // trim(glc2lnd_non_ec_fields)
 
     ! glc2lnd fields separated by elevation class are all fields not determined above.
     ! However, we also need to remove glc_frac_field and glc_topo_field from this list,
@@ -355,6 +361,9 @@ contains
     call mct_aVect_copy(aVin=r2x_l, aVout=x2l_l, vector=mct_usevector, sharedIndices=r2x_SharedIndices)
     call mct_aVect_copy(aVin=g2x_l, aVout=x2l_l, vector=mct_usevector, sharedIndices=g2x_SharedIndices)
 
+    call mct_aVect_copy(aVin=g2x_l, aVout=x2l_l, rList="Sg_ice_covered",vector=mct_usevector) ! BK
+
+
     if (first_time) then
        if (iamroot) then
           write(logunit,'(A)') subname//' Summary:'
@@ -439,7 +448,7 @@ contains
     ! Local Variables
     integer :: egi
     type(mct_aVect), pointer :: g2x_gx
-    character(*), parameter :: subname = '(prep_lnd_calc_g2x_lx)'
+    character(*), parameter :: subname = '(prep_lnd_calc_g2x_lx) '
     !---------------------------------------------------------------
 
     call t_drvstartf (trim(timer),barrier=mpicom_CPLID)
@@ -458,8 +467,11 @@ contains
        !
        ! BUG(wjs, 2017-05-11, #1516) I think we actually want norm = .false. here, but
        ! this requires some more thought
+       ! BK: ? why is Sg_ice_covered field not mapped here...
        call seq_map_map(mapper_Fg2l, g2x_gx, g2x_lx(egi), &
             fldlist = glc2lnd_non_ec_fields, norm=.true.)
+       call seq_map_map(mapper_Fg2l, g2x_gx, g2x_lx(egi), &
+            fldlist = "Sg_ice_covered"     , norm=.true.)  ! where ice shelf exists
 
        ! Map fields that are separated by elevation class on the land grid
        call map_glc2lnd_ec( &
@@ -470,6 +482,7 @@ contains
             extra_fields = glc2lnd_ec_extra_fields, &
             mapper = mapper_Fg2l, &
             g2x_l = g2x_lx(egi))
+
     enddo
     call t_drvstopf  (trim(timer))
 
