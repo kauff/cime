@@ -3714,6 +3714,32 @@
     </values>
   </entry>
 
+  <entry id="glc2ocn_smapname"    modify_via_xml="GLC2OCN_SMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>seq_maps</group>
+    <desc>
+      glc to ocn mapping file, for glc states (eg fraction)
+    </desc>
+    <values>
+      <value>$GLC2OCN_SMAPNAME</value>
+    </values>
+  </entry>
+
+  <entry id="glc2ocn_smaptype"    modify_via_xml="GLC2OCN_SMAPTYPE">
+    <type>char</type>
+    <category>mapping</category>
+    <group>seq_maps</group>
+    <desc>
+      glc to ocn mapping file, for glc states (eg fraction)
+    </desc>
+    <values>
+      <value>$GLC2OCN_SMAPTYPE</value>
+      <value bfbflag="on">X</value>
+    </values>
+  </entry>
+
   <entry id="glc2ocn_ice_rmapname"    modify_via_xml="GLC2OCN_ICE_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -3770,6 +3796,32 @@
     </desc>
     <values>
       <value>$GLC2ICE_RMAPTYPE</value>
+      <value bfbflag="on">X</value>
+    </values>
+  </entry>
+
+  <entry id="glc2ice_smapname"    modify_via_xml="GLC2ICE_SMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>seq_maps</group>
+    <desc>
+      glc to ice mapping file, for states (eg. fraction)
+    </desc>
+    <values>
+      <value>$GLC2ICE_SMAPNAME</value>
+    </values>
+  </entry>
+
+  <entry id="glc2ice_smaptype"    modify_via_xml="GLC2ICE_SMAPTYPE">
+    <type>char</type>
+    <category>mapping</category>
+    <group>seq_maps</group>
+    <desc>
+      glc to ice mapping file, for states (eg. fraction)
+    </desc>
+    <values>
+      <value>$GLC2ICE_SMAPTYPE</value>
       <value bfbflag="on">X</value>
     </values>
   </entry>
