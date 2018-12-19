@@ -142,6 +142,7 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
            &               evap  ,evap_16O, evap_HDO, evap_18O, &
            &               taux  ,tauy  ,tref  ,qref  ,   &
            &               duu10n,  ustar_sv   ,re_sv ,ssq_sv,   &
+           &               u10 , v10 , znt , br  , psim, psih,   &
            &               missval    )
 
 ! !USES:
@@ -192,6 +193,13 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
    real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
    real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity  (kg/kg)
 
+   real(R8),intent(out),optional :: u10 (nMax) ! 10m wind velocity, eastward           (BK: for wrf)
+   real(R8),intent(out),optional :: v10 (nMax) ! 10m wind velocity, northward          (BK: for wrf)
+   real(R8),intent(out),optional :: znt (nMax) ! roughness length                      (BK: for wrf)
+   real(R8),intent(out),optional :: br  (nMax) ! bulk Richardson number                (BK: for wrf)
+   real(R8),intent(out),optional :: psim(nMax) ! stability function at zbot (momentum) (BK: for wrf)
+   real(R8),intent(out),optional :: psih(nMax) ! stability function at zbot (heat)     (BK: for wrf)
+
    real(R8),intent(in) ,optional :: missval        ! masked value
 
 ! !EOP
@@ -225,14 +233,18 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
    real(R8)    :: xqq    ! ?
    real(R8)    :: psimh  ! stability function at zbot (momentum)
    real(R8)    :: psixh  ! stability function at zbot (heat and water)
-   real(R8)    :: psix2  ! stability function at ztref reference height
+   real(R8)    :: psix2  ! stability function at ztref reference height (2m)
    real(R8)    :: alz    ! ln(zbot/zref)
    real(R8)    :: al2    ! ln(zref/ztref)
    real(R8)    :: u10n   ! 10m neutral wind
    real(R8)    :: tau    ! stress at zbot
    real(R8)    :: cp     ! specific heat of moist air
    real(R8)    :: fac    ! vertical interpolation factor
+   real(R8)    :: wRef   ! actual wind speed  at zref = 10m ref height
+   real(R8)    :: psim10 ! stability function at zref = 10m ref height
    real(R8)    :: spval  ! local missing value
+
+   !--- local variables added for WRF ------------------
 
    !--- local functions --------------------------------
    real(R8)    :: qsat   ! function: the saturation humididty of air (kg/m^3)
@@ -417,7 +429,7 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
         !------------------------------------------------------------
         ! compute diagnositcs: 2m ref T & Q, 10m wind speed squared
         !------------------------------------------------------------
-        hol = hol*ztref/zbot(n)
+        hol = hol*ztref/zbot(n)  ! move hol from zbot to 2m
         xsq = max( 1.0_R8, sqrt(abs(1.0_R8-16.0_R8*hol)) )
         xqq = sqrt(xsq)
         psix2   = -5.0_R8*hol*stable + (1.0_R8-stable)*psixhu(xqq)
@@ -436,6 +448,49 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
         if (present(re_sv   )) re_sv(n)    = re
         if (present(ssq_sv  )) ssq_sv(n)   = ssq
 
+        !------------------------------------------------------------
+        ! optional diagnostics, needed by WRF for boundary layer calc
+        !------------------------------------------------------------
+        if (present(u10     )) u10  (n) = spval
+        if (present(v10     )) v10  (n) = spval
+        if (present(u10) .and. present(v10)) then
+           !--- compute 10m actual wind vector
+           !--- hol (computed above) = z/L at zbot
+           hol = hol*zRef/ztref   ! move hol (z/L) from 2m (ztRef) to 10m (zRef)
+           xsq = max( 1.0_R8, sqrt(abs(1.0_R8-16.0_R8*hol)) )
+           xqq = sqrt(xsq)
+           !--- get stability function for momentum at 10m
+           psim10 = -5.0_R8*hol*stable + (1.0_R8-stable)*psimhu(xqq)
+           !--- factor for converting from bottom level (zbot) wind to 10m as
+           !--- suggested by B. Large Nov 2018, basically move wind from zbot to 10m
+           !--- using known stability functions at zbot and 10m and log profile
+           fac  = (rd/loc_karman) * (alz + psimh - psim10 )
+           wRef = vmag_old *(1.0_R8+fac)
+           !--- get wind vector components following taux, tauy definition above)
+           u10(n) = wRef * (ubot(n)-us(n)) / vmag_old ! similar to taux & tauy
+           v10(n) = wRef * (vbot(n)-vs(n)) / vmag_old
+        end if
+        if (present(znt     )) then
+           ! (RJS) compute roughness length as in GFDL version of CORE code, 
+           ! also equation 38 of Large (2006) in "Ocean Weather Forecasting."
+           ! Note rdn is sqrt of neutral 10m drag coeff
+           znt(n)=10.0_R8*exp(-loc_karman/rdn)
+        end if
+        if (present(br      )) then
+           ! (RJS) Bulk Richardson number can be defined in a number of ways,
+           ! from fluxes or from bulk values, here we follow WRF using bulk values
+           ! BR= (g/theta)*Z* DTHETA/(WSPD^2)   where 
+           ! * DTHETA is air-sea pot temp diff, and
+           ! * WSPD is magnitude of (Ubot-Us, Vbot-Vs)
+           ! so we are approximating db/dz/((du/dz)^2) where b is buoyancy. Note:
+           ! * thbot is bottom level pot temp,
+           ! * delt is air-sea pot. temp. diff
+           ! * vmag_old does not include any gustiness
+           ! ? should we use virtual pot. temp. diff
+           BR(n)=(loc_g/thbot(n))*zbot(n)*delt/(vmag_old*vmag_old)
+        endif
+        if (present(psim    )) psim (n) = psimh
+        if (present(psih    )) psih (n) = psixh
      else
         !------------------------------------------------------------
         ! no valid data here -- out of domain
@@ -456,6 +511,13 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
         if (present(ustar_sv)) ustar_sv(n) = spval
         if (present(re_sv   )) re_sv   (n) = spval
         if (present(ssq_sv  )) ssq_sv  (n) = spval
+
+        if (present(u10     )) u10     (n) = spval
+        if (present(v10     )) v10     (n) = spval
+        if (present(znt     )) znt     (n) = spval
+        if (present(br      )) br      (n) = spval
+        if (present(psim    )) psim    (n) = spval
+        if (present(psih    )) psih    (n) = spval
      endif
    ENDDO
 

@@ -1137,15 +1137,81 @@ contains
     attname  = 'So_re'
     call metadata_set(attname, longname, stdname, units)
 
-    ! 10 meter wind
+    ! 10 meter wind, neutral
     call seq_flds_add(i2x_states,"Si_u10")
     call seq_flds_add(xao_states,"So_u10")
     call seq_flds_add(l2x_states,"Sl_u10")
     call seq_flds_add(x2a_states,"Sx_u10")
-    longname = '10m wind'
-    stdname  = '10m_wind'
+    longname = '10m wind, neutral'
+    stdname  = '10m_wind, neutral'
     units    = 'm'
     attname  = 'u10'
+    call metadata_set(attname, longname, stdname, units)
+
+    ! 10 meter wind velocity, eastward
+    call seq_flds_add(i2x_states,"Si_u10x")
+    call seq_flds_add(xao_states,"So_u10x")
+    call seq_flds_add(l2x_states,"Sl_u10x")
+    call seq_flds_add(x2a_states,"Sx_u10x")
+    longname = '10m wind velocity, eastward'
+    stdname  = '10m_velocity_eastward'
+    units    = 'm/s'
+    attname  = 'u10x'
+    call metadata_set(attname, longname, stdname, units)
+
+    ! 10 meter wind velocity, northward
+    call seq_flds_add(i2x_states,"Si_v10")
+    call seq_flds_add(xao_states,"So_v10")
+    call seq_flds_add(l2x_states,"Sl_v10")
+    call seq_flds_add(x2a_states,"Sx_v10")
+    longname = '10m wind velocity, northward'
+    stdname  = '10m_velocity_northward'
+    units    = 'm/s'
+    attname  = 'v10'
+    call metadata_set(attname, longname, stdname, units)
+
+    ! surface roughness length
+    call seq_flds_add(i2x_states,"Si_znt")
+    call seq_flds_add(xao_states,"So_znt")
+    call seq_flds_add(l2x_states,"Sl_znt")
+    call seq_flds_add(x2a_states,"Sx_znt")
+    longname = 'surface roughness length'
+    stdname  = 'surface roughness length'
+    units    = 'm'
+    attname  = 'znt'
+    call metadata_set(attname, longname, stdname, units)
+
+    ! similarity stability function for momentum
+    call seq_flds_add(i2x_states,"Si_psim")
+    call seq_flds_add(xao_states,"So_psim")
+    call seq_flds_add(l2x_states,"Sl_psim")
+    call seq_flds_add(x2a_states,"Sx_psim")
+    longname = 'stability function, momentum'
+    stdname  = 'stability_function_momentum'
+    units    = 'xxx'
+    attname  = 'psim'
+    call metadata_set(attname, longname, stdname, units)
+
+    ! similarity stability function for heat
+    call seq_flds_add(i2x_states,"Si_psih")
+    call seq_flds_add(xao_states,"So_psih")
+    call seq_flds_add(l2x_states,"Sl_psih")
+    call seq_flds_add(x2a_states,"Sx_psih")
+    longname = 'stability function, heat'
+    stdname  = 'stability_function_heat'
+    units    = 'xxx'
+    attname  = 'psih'
+    call metadata_set(attname, longname, stdname, units)
+
+    ! bulk richardson number
+    call seq_flds_add(i2x_states,"Si_br")
+    call seq_flds_add(xao_states,"So_br")
+    call seq_flds_add(l2x_states,"Sl_br")
+    call seq_flds_add(x2a_states,"Sx_br")
+    longname = 'bulk richardson number'
+    stdname  = 'bulk_richardson_number'
+    units    = 'm^2/s^2'
+    attname  = 'br'
     call metadata_set(attname, longname, stdname, units)
 
     ! Zonal surface stress"

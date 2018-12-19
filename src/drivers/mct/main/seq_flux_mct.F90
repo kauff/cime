@@ -67,6 +67,13 @@ module seq_flux_mct
   real(r8), allocatable ::  qref (:)  ! diagnostic:  2m ref Q
   real(r8), allocatable :: duu10n(:)  ! diagnostic: 10m wind speed squared
 
+  real(R8), allocatable :: u10   (:) ! 10m wind velocity, eastward           (BK: for wrf)
+  real(R8), allocatable :: v10   (:) ! 10m wind velocity, northward          (BK: for wrf)
+  real(R8), allocatable :: znt   (:) ! roughness length                      (BK: for wrf)
+  real(R8), allocatable :: br    (:) ! bulk Richardson number                (BK: for wrf)
+  real(R8), allocatable :: psim  (:) ! stability function at zbot (momentum) (BK: for wrf)
+  real(R8), allocatable :: psih  (:) ! stability function at zbot (heat)     (BK: for wrf)
+
   real(r8), allocatable :: fswpen (:) ! fraction of sw penetrating ocn surface layer
   real(r8), allocatable :: ocnsal (:) ! ocean salinity
   real(r8), allocatable :: uGust  (:) ! wind gust
@@ -158,6 +165,12 @@ module seq_flux_mct
   integer :: index_xao_So_ssq
   integer :: index_xao_So_duu10n
   integer :: index_xao_So_u10
+  integer :: index_xao_So_u10x    ! BK for wrf
+  integer :: index_xao_So_v10     ! BK for wrf
+  integer :: index_xao_So_znt     ! BK for wrf
+  integer :: index_xao_So_psim    ! BK for wrf
+  integer :: index_xao_So_psih    ! BK for wrf
+  integer :: index_xao_So_br      ! BK for wrf
   integer :: index_xao_So_fswpen
   integer :: index_xao_So_warm_diurn
   integer :: index_xao_So_salt_diurn
@@ -314,6 +327,26 @@ contains
     allocate(duu10n(nloc),stat=ier)
     if(ier/=0) call mct_die(subName,'allocate duu10n',ier)
     duu10n = 0.0_r8
+
+    !--- diagnostic fields for wrf boundary layer calculation --- BK
+    allocate(u10(nloc),stat=ier)
+    if(ier/=0) call mct_die(subName,'allocate u10',ier)
+    u10 = 0.0_r8
+    allocate(v10(nloc),stat=ier)
+    if(ier/=0) call mct_die(subName,'allocate v10',ier)
+    v10 = 0.0_r8
+    allocate(znt(nloc),stat=ier)
+    if(ier/=0) call mct_die(subName,'allocate znt',ier)
+    znt = 0.0_r8
+    allocate(br (nloc),stat=ier)
+    if(ier/=0) call mct_die(subName,'allocate br ',ier)
+    br  = 0.0_r8
+    allocate(psim(nloc),stat=ier)
+    if(ier/=0) call mct_die(subName,'allocate psim',ier)
+    psim = 0.0_r8
+    allocate(psih(nloc),stat=ier)
+    if(ier/=0) call mct_die(subName,'allocate psih',ier)
+    psih = 0.0_r8
 
     !--- flux_diurnal cycle flux fields ---
     allocate(uGust(nloc),stat=ier)
@@ -1228,6 +1261,12 @@ contains
        index_xao_So_ssq    = mct_aVect_indexRA(xao,'So_ssq')
        index_xao_So_u10    = mct_aVect_indexRA(xao,'So_u10')
        index_xao_So_duu10n = mct_aVect_indexRA(xao,'So_duu10n')
+       index_xao_So_u10x   = mct_aVect_indexRA(xao,'So_u10x')  ! BK for wrf boundary layer calc
+       index_xao_So_v10    = mct_aVect_indexRA(xao,'So_v10')
+       index_xao_So_znt    = mct_aVect_indexRA(xao,'So_znt')
+       index_xao_So_psim   = mct_aVect_indexRA(xao,'So_psim')
+       index_xao_So_psih   = mct_aVect_indexRA(xao,'So_psih')
+       index_xao_So_br     = mct_aVect_indexRA(xao,'So_br')
        index_xao_Faox_taux = mct_aVect_indexRA(xao,'Faox_taux')
        index_xao_Faox_tauy = mct_aVect_indexRA(xao,'Faox_tauy')
        index_xao_Faox_lat  = mct_aVect_indexRA(xao,'Faox_lat')
@@ -1441,7 +1480,8 @@ contains
             tocn , emask, sen , lat , lwup , &
             roce_16O, roce_HDO, roce_18O,    &
             evap , evap_16O, evap_HDO, evap_18O, taux , tauy, tref, qref , &
-            duu10n,ustar, re  , ssq)
+            duu10n,ustar, re  , ssq, &
+            u10 , v10 , znt , br  , psim, psih, missval = 1.0e36_r8)
        !missval should not be needed if flux calc
        !consistent with mrgx2a fraction
        !duu10n,ustar, re  , ssq, missval = 0.0_r8 )
@@ -1465,6 +1505,12 @@ contains
           xao%rAttr(index_xao_Faox_lwup,n) = lwup(n)
           xao%rAttr(index_xao_So_duu10n,n) = duu10n(n)
           xao%rAttr(index_xao_So_u10   ,n) = sqrt(duu10n(n))
+          xao%rAttr(index_xao_So_u10x  ,n) = u10 (n)
+          xao%rAttr(index_xao_So_v10   ,n) = v10 (n)
+          xao%rAttr(index_xao_So_znt   ,n) = znt (n)
+          xao%rAttr(index_xao_So_psim  ,n) = psim(n)
+          xao%rAttr(index_xao_So_psih  ,n) = psih(n)
+          xao%rAttr(index_xao_So_br    ,n) = br  (n)
           xao%rAttr(index_xao_So_warm_diurn       ,n) = warm(n)
           xao%rAttr(index_xao_So_salt_diurn       ,n) = salt(n)
           xao%rAttr(index_xao_So_speed_diurn      ,n) = speed(n)
