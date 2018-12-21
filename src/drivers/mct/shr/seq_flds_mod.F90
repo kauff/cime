@@ -1160,14 +1160,14 @@ contains
     call metadata_set(attname, longname, stdname, units)
 
     ! 10 meter wind velocity, northward
-    call seq_flds_add(i2x_states,"Si_v10")
-    call seq_flds_add(xao_states,"So_v10")
-    call seq_flds_add(l2x_states,"Sl_v10")
-    call seq_flds_add(x2a_states,"Sx_v10")
+    call seq_flds_add(i2x_states,"Si_u10y")
+    call seq_flds_add(xao_states,"So_u10y")
+    call seq_flds_add(l2x_states,"Sl_u10y")
+    call seq_flds_add(x2a_states,"Sx_u10y")
     longname = '10m wind velocity, northward'
     stdname  = '10m_velocity_northward'
     units    = 'm/s'
-    attname  = 'v10'
+    attname  = 'u10y'
     call metadata_set(attname, longname, stdname, units)
 
     ! surface roughness length
@@ -1188,7 +1188,7 @@ contains
     call seq_flds_add(x2a_states,"Sx_psim")
     longname = 'stability function, momentum'
     stdname  = 'stability_function_momentum'
-    units    = 'xxx'
+    units    = ''
     attname  = 'psim'
     call metadata_set(attname, longname, stdname, units)
 
@@ -1199,7 +1199,7 @@ contains
     call seq_flds_add(x2a_states,"Sx_psih")
     longname = 'stability function, heat'
     stdname  = 'stability_function_heat'
-    units    = 'xxx'
+    units    = ''
     attname  = 'psih'
     call metadata_set(attname, longname, stdname, units)
 

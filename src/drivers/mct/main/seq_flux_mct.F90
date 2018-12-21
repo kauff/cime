@@ -166,7 +166,7 @@ module seq_flux_mct
   integer :: index_xao_So_duu10n
   integer :: index_xao_So_u10
   integer :: index_xao_So_u10x    ! BK for wrf
-  integer :: index_xao_So_v10     ! BK for wrf
+  integer :: index_xao_So_u10y    ! BK for wrf
   integer :: index_xao_So_znt     ! BK for wrf
   integer :: index_xao_So_psim    ! BK for wrf
   integer :: index_xao_So_psih    ! BK for wrf
@@ -1262,7 +1262,7 @@ contains
        index_xao_So_u10    = mct_aVect_indexRA(xao,'So_u10')
        index_xao_So_duu10n = mct_aVect_indexRA(xao,'So_duu10n')
        index_xao_So_u10x   = mct_aVect_indexRA(xao,'So_u10x')  ! BK for wrf boundary layer calc
-       index_xao_So_v10    = mct_aVect_indexRA(xao,'So_v10')
+       index_xao_So_u10y   = mct_aVect_indexRA(xao,'So_u10y')
        index_xao_So_znt    = mct_aVect_indexRA(xao,'So_znt')
        index_xao_So_psim   = mct_aVect_indexRA(xao,'So_psim')
        index_xao_So_psih   = mct_aVect_indexRA(xao,'So_psih')
@@ -1506,7 +1506,7 @@ contains
           xao%rAttr(index_xao_So_duu10n,n) = duu10n(n)
           xao%rAttr(index_xao_So_u10   ,n) = sqrt(duu10n(n))
           xao%rAttr(index_xao_So_u10x  ,n) = u10 (n)
-          xao%rAttr(index_xao_So_v10   ,n) = v10 (n)
+          xao%rAttr(index_xao_So_u10y  ,n) = v10 (n)
           xao%rAttr(index_xao_So_znt   ,n) = znt (n)
           xao%rAttr(index_xao_So_psim  ,n) = psim(n)
           xao%rAttr(index_xao_So_psih  ,n) = psih(n)
