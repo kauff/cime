@@ -142,7 +142,7 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
            &               evap  ,evap_16O, evap_HDO, evap_18O, &
            &               taux  ,tauy  ,tref  ,qref  ,   &
            &               duu10n,  ustar_sv   ,re_sv ,ssq_sv,   &
-           &               u10 , v10 , znt , br  , psim, psih,   &
+           &               u10 , v10 , znt , br  , psim, psih, hol_sv,  &
            &               missval    )
 
 ! !USES:
@@ -193,12 +193,13 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
    real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
    real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity  (kg/kg)
 
-   real(R8),intent(out),optional :: u10 (nMax) ! 10m wind velocity, eastward           (BK: for wrf)
-   real(R8),intent(out),optional :: v10 (nMax) ! 10m wind velocity, northward          (BK: for wrf)
-   real(R8),intent(out),optional :: znt (nMax) ! roughness length                      (BK: for wrf)
-   real(R8),intent(out),optional :: br  (nMax) ! bulk Richardson number                (BK: for wrf)
-   real(R8),intent(out),optional :: psim(nMax) ! stability function at zbot (momentum) (BK: for wrf)
-   real(R8),intent(out),optional :: psih(nMax) ! stability function at zbot (heat)     (BK: for wrf)
+   real(R8),intent(out),optional :: u10   (nMax) ! 10m wind velocity, eastward           (BK: for wrf)
+   real(R8),intent(out),optional :: v10   (nMax) ! 10m wind velocity, northward          (BK: for wrf)
+   real(R8),intent(out),optional :: znt   (nMax) ! roughness length                      (BK: for wrf)
+   real(R8),intent(out),optional :: br    (nMax) ! bulk Richardson number                (BK: for wrf)
+   real(R8),intent(out),optional :: psim  (nMax) ! stability function at zbot (momentum) (BK: for wrf)
+   real(R8),intent(out),optional :: psih  (nMax) ! stability function at zbot (heat)     (BK: for wrf)
+   real(R8),intent(out),optional :: hol_sv(nMax) ! height over Monin-Obukov length       (YL: for wrf)
 
    real(R8),intent(in) ,optional :: missval        ! masked value
 
@@ -451,6 +452,8 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
         !------------------------------------------------------------
         ! optional diagnostics, needed by WRF for boundary layer calc
         !------------------------------------------------------------
+        if (present(hol_sv  )) hol_sv (n) = hol*zRef/ztref   ! move hol (z/L) from 2m (ztRef) to 10m (zRef), and save it
+
         if (present(u10     )) u10  (n) = spval
         if (present(v10     )) v10  (n) = spval
         if (present(u10) .and. present(v10)) then
@@ -518,6 +521,7 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
         if (present(br      )) br      (n) = spval
         if (present(psim    )) psim    (n) = spval
         if (present(psih    )) psih    (n) = spval
+        if (present(hol_sv  )) hol_sv  (n) = spval
      endif
    ENDDO
 

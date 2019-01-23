@@ -1214,6 +1214,17 @@ contains
     attname  = 'br'
     call metadata_set(attname, longname, stdname, units)
 
+    ! height over Monin-Obukov length
+    call seq_flds_add(i2x_states,"Si_hol")
+    call seq_flds_add(xao_states,"So_hol")
+    call seq_flds_add(l2x_states,"Sl_hol")
+    call seq_flds_add(x2a_states,"Sx_hol")
+    longname = 'height over Monin-Obukov length'
+    stdname  = 'height over Monin-Obukov length'
+    units    = ''
+    attname  = 'hol'
+    call metadata_set(attname, longname, stdname, units)
+
     ! Zonal surface stress"
     call seq_flds_add(l2x_fluxes,"Fall_taux")
     call seq_flds_add(xao_fluxes,"Faox_taux")
