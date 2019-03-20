@@ -226,7 +226,7 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
    real(R8)    :: rh     ! sqrt of exchange coefficient (heat)
    real(R8)    :: re     ! sqrt of exchange coefficient (water)
    real(R8)    :: ustar  ! ustar
-   real(r8)     :: ustar_prev
+   real(r8)    :: ustar_prev
    real(R8)    :: qstar  ! qstar
    real(R8)    :: tstar  ! tstar
    real(R8)    :: hol    ! H (at zbot) over L
@@ -246,6 +246,8 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
    real(R8)    :: spval  ! local missing value
 
    !--- local variables added for WRF ------------------
+   real(R8)    :: sstv   ! virtual temp at surface (k)
+   real(R8)    :: thv    ! virtual pot temp (K)
 
    !--- local functions --------------------------------
    real(R8)    :: qsat   ! function: the saturation humididty of air (kg/m^3)
@@ -490,7 +492,11 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
            ! * delt is air-sea pot. temp. diff
            ! * vmag_old does not include any gustiness
            ! ? should we use virtual pot. temp. diff
-           BR(n)=(loc_g/thbot(n))*zbot(n)*delt/(vmag_old*vmag_old)
+        !  BR(n)=(loc_g/thbot(n))*zbot(n)*delt/(vmag_old*vmag_old) ~ previous version of BR
+           thv    = thbot(n)*(1.0_R8 + loc_zvir * qbot(n)) ! virtual pot temp (K)
+           sstv   =    ts(n)*(1.0_R8 + loc_zvir * ssq)     ! virtual temp at surface (k)
+        !  delthv =                           thv-sstv
+           BR(n)  = (loc_g/thbot(n))*zbot(n)*(thv-sstv)/(vmag_old*vmag_old)
         endif
         if (present(psim    )) psim (n) = psimh
         if (present(psih    )) psih (n) = psixh
