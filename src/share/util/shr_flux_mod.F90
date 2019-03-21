@@ -454,7 +454,7 @@ SUBROUTINE shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  prec_gust, gust_
         !------------------------------------------------------------
         ! optional diagnostics, needed by WRF for boundary layer calc
         !------------------------------------------------------------
-        if (present(hol_sv  )) hol_sv (n) = hol*zRef/ztref   ! move hol (z/L) from 2m (ztRef) to 10m (zRef), and save it
+        if (present(hol_sv  )) hol_sv(n) = hol*zBot(n)/ztref ! move hol (z/L) from ztRef (2m) to zBot, and save it
 
         if (present(u10     )) u10  (n) = spval
         if (present(v10     )) v10  (n) = spval
